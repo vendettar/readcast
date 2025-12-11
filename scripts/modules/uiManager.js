@@ -21,6 +21,7 @@ class UIManager {
       languageAction: document.getElementById('languageAction'),
       themeAction: document.getElementById('themeAction'),
       shortcutAction: document.getElementById('shortcutAction'),
+      qaAction: document.getElementById('qaAction'),
       warningsList: document.querySelector('.warnings-list'),
       emptyPanel: document.querySelector('.empty-panel'),
       floatingPanel: document.querySelector('.floating-panel'),

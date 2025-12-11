@@ -182,11 +182,19 @@ body.ready {
     color: var(--highlight-color);
 }
 
-.shortcut-fab {
+.fab-dock {
     position: fixed;
     right: var(--page-gutter);
     bottom: var(--page-gutter);
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
     z-index: 18;
+}
+
+.shortcut-fab,
+.qa-fab {
+    position: relative;
 }
 
 .shortcut-dropdown {
@@ -197,7 +205,7 @@ body.ready {
     align-items: stretch;
 }
 
-.shortcut-fab .action-dropdown {
+.fab-dock .action-dropdown {
     top: auto;
     bottom: calc(100% + 12px);
     right: 0;
@@ -256,6 +264,34 @@ body.ready {
     font-size: 12px;
     color: var(--text-color);
     text-align: left;
+}
+
+.qa-dropdown {
+    width: 560px;
+    gap: 10px;
+    padding: 12px;
+}
+
+.qa-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.qa-question {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-color);
+}
+
+.qa-answer {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-color);
+    background: var(--surface-bg);
+    border-radius: 10px;
+    padding: 10px;
+    border: 1px solid var(--border-color);
 }
 
 .theme-dropdown {

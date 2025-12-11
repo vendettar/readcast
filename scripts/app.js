@@ -77,8 +77,8 @@ class ReadcastPlayer {
             scrollReleaseTimer: null
         });
 
-        const { languageAction, themeAction, shortcutAction } = this.uiManager.elements;
-        this.actionControls = [languageAction, themeAction, shortcutAction].filter(Boolean);
+        const { languageAction, themeAction, shortcutAction, qaAction } = this.uiManager.elements;
+        this.actionControls = [languageAction, themeAction, shortcutAction, qaAction].filter(Boolean);
 
         this.isScrubbingProgress = false;
         this.audioDuration = 0;

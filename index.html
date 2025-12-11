@@ -115,23 +115,51 @@
     <input type="file" id="fileInput" multiple accept=".mp3,.srt">
     <audio id="audioPlayer"></audio>
 
-    <div class="shortcut-fab action" id="shortcutAction">
-        <button class="action-button" aria-haspopup="true" aria-expanded="false" aria-label="Shortcuts">
-            <img src="assets/keyboard.svg" alt="" class="action-icon">
-        </button>
-        <div class="action-dropdown shortcut-dropdown">
-            <strong data-i18n="shortcutTitle">Shortcuts</strong>
-            <div class="shortcut-row">
-                <span class="keycap" data-i18n="shortcutSpaceKey">Space</span>
-                <span class="shortcut-label" data-i18n="shortcutPlayLabel">Play / Pause</span>
+    <div class="fab-dock">
+        <div class="shortcut-fab action" id="shortcutAction">
+            <button class="action-button" aria-haspopup="true" aria-expanded="false" aria-label="Shortcuts">
+                <img src="assets/keyboard.svg" alt="" class="action-icon">
+            </button>
+            <div class="action-dropdown shortcut-dropdown">
+                <strong data-i18n="shortcutTitle">Shortcuts</strong>
+                <div class="shortcut-row">
+                    <span class="keycap" data-i18n="shortcutSpaceKey">Space</span>
+                    <span class="shortcut-label" data-i18n="shortcutPlayLabel">Play / Pause</span>
+                </div>
+                <div class="shortcut-row">
+                    <span class="keycap keycap-arrow">⟵</span>
+                    <span class="shortcut-label" data-i18n="shortcutPrevLabel">Previous line</span>
+                </div>
+                <div class="shortcut-row">
+                    <span class="keycap keycap-arrow">⟶</span>
+                    <span class="shortcut-label" data-i18n="shortcutNextLabel">Next line</span>
+                </div>
             </div>
-            <div class="shortcut-row">
-                <span class="keycap keycap-arrow">⟵</span>
-                <span class="shortcut-label" data-i18n="shortcutPrevLabel">Previous line</span>
-            </div>
-            <div class="shortcut-row">
-                <span class="keycap keycap-arrow">⟶</span>
-                <span class="shortcut-label" data-i18n="shortcutNextLabel">Next line</span>
+        </div>
+
+        <div class="qa-fab action" id="qaAction">
+            <button class="action-button" aria-haspopup="true" aria-expanded="false" aria-label="Q&A">
+                <img src="assets/question.svg" alt="" class="action-icon">
+            </button>
+            <div class="action-dropdown qa-dropdown">
+                <div class="qa-item">
+                    <div class="qa-question" data-i18n="qaQuestionReadcast">What is Readcast?</div>
+                    <div class="qa-answer" data-i18n="qaAnswerReadcast">
+                        Readcast is a lightweight browser player for listening to an .mp3 while reading along with a matching .srt subtitle file. Drop your files in and the page keeps audio and text in sync so you can jump to any line, follow along hands-free, or copy passages for reference.
+                    </div>
+                </div>
+                <div class="qa-item">
+                    <div class="qa-question" data-i18n="qaQuestionPrivacy">Does Readcast upload my files?</div>
+                    <div class="qa-answer" data-i18n="qaAnswerPrivacy">
+                        All processing happens in the browser; files are not uploaded anywhere.
+                    </div>
+                </div>
+                <div class="qa-item">
+                    <div class="qa-question" data-i18n="qaQuestionVbr">Why might seeking be inaccurate for some MP3s?</div>
+                    <div class="qa-answer" data-i18n="qaAnswerVbr">
+                        Some VBR .mp3 files without proper headers may seek less accurately; saving the file with a Xing/VBR header can improve jumping precision.
+                    </div>
+                </div>
             </div>
         </div>
     </div>
