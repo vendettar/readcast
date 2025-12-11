@@ -157,7 +157,7 @@
                 <div class="qa-item">
                     <div class="qa-question" data-i18n="qaQuestionVbr">Why might seeking be inaccurate for some MP3s?</div>
                     <div class="qa-answer" data-i18n="qaAnswerVbr">
-                        Some VBR .mp3 files without proper headers may seek less accurately; saving the file with a Xing/VBR header can improve jumping precision.
+                        Some VBR .mp3 files without proper headers may seek less accurately; uploading an MP3 with a Xing/VBR header can improve jumping precision. You can add the header with: ffmpeg -i input.mp3 -c:a copy -write_xing 1 output.mp3
                     </div>
                 </div>
             </div>

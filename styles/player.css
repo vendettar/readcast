@@ -21,6 +21,9 @@ body {
     --page-gutter: 24px;
     --rail-offset: clamp(180px, calc(var(--control-cluster) + var(--page-gutter) + 8px), 280px);
     --float-btn-right: calc(var(--page-gutter) / 2);
+    --caret-color: #0f172a;
+    --selection-bg: rgba(59, 130, 246, 0.25);
+    --selection-color: #0b1220;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
     min-height: 100vh;
@@ -51,6 +54,9 @@ body.ready {
     --muted-color: #a3afc7;
     --border-color: rgba(0, 0, 0, 0.32);
     --surface-bg: rgba(0, 0, 0, 0.06);
+    --caret-color: #f8fbff;
+    --selection-bg: rgba(59, 130, 246, 0.5);
+    --selection-color: #f8fbff;
 }
 
 .top-bar {
@@ -714,7 +720,7 @@ body.ready {
     padding: 12px 54px 12px 15px;
     margin-bottom: 8px;
     border-radius: 6px;
-    cursor: pointer;
+    cursor: url('../assets/touch.svg') 9 9, pointer;
     line-height: 1.6;
     color: var(--text-color);
     transition: all 0.2s;
@@ -797,6 +803,16 @@ body.ready {
 .subtitle-text {
     font-size: 15px;
     color: var(--text-color);
+    display: inline;
+    max-width: none;
+    cursor: url('../assets/select.svg') 12 12, text;
+    caret-color: var(--caret-color);
+}
+
+.subtitle-text::selection,
+.subtitle-text::-moz-selection {
+    background: var(--selection-bg);
+    color: var(--selection-color);
 }
 
 #fileInput {

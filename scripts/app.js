@@ -564,18 +564,56 @@ class ReadcastPlayer {
         const copyButton = createCopyButton(subtitle.text, { t: this.t });
         element.appendChild(copyButton);
 
-        element.addEventListener('click', () => {
+        element.addEventListener('click', (event) => {
             const selection = window.getSelection ? window.getSelection() : null;
             if (selection && !selection.isCollapsed) return;
-            this.jumpToSubtitle(index);
+            const target = event.target && event.target.nodeType === Node.TEXT_NODE ? event.target.parentElement : event.target;
+            if (target && target.closest('.subtitle-copy-btn')) return;
+
+            const textEl = element.querySelector('.subtitle-text');
+            if (textEl && textEl.contains(target)) {
+                if (this.isPointerOnRenderedText(textEl, event)) return;
+            }
+            this.jumpToSubtitle(index, { forceFollow: true });
         });
 
         return element;
     }
 
-    jumpToSubtitle(index) {
+    isPointerOnRenderedText(textEl, event) {
+        if (!textEl || !event) return false;
+        const { clientX, clientY } = event;
+        const textContentLength = (textEl.textContent || '').length;
+
+        const hitTextViaRange = (rangeObj) => {
+            if (!rangeObj) return false;
+            const container = rangeObj.startContainer;
+            if (!container || !textEl.contains(container)) return false;
+            if (container.nodeType === Node.TEXT_NODE) {
+                return rangeObj.startOffset < textContentLength;
+            }
+            return true;
+        };
+
+        if (document.caretRangeFromPoint) {
+            const range = document.caretRangeFromPoint(clientX, clientY);
+            if (hitTextViaRange(range)) return true;
+        } else if (document.caretPositionFromPoint) {
+            const pos = document.caretPositionFromPoint(clientX, clientY);
+            if (pos && pos.offsetNode && textEl.contains(pos.offsetNode)) {
+                if (pos.offsetNode.nodeType === Node.TEXT_NODE) {
+                    return pos.offset < textContentLength;
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
+    jumpToSubtitle(index, { forceFollow = false } = {}) {
         const { subtitles, audioLoaded } = this.stateManager.getState();
         if (index < 0 || index >= subtitles.length) return;
+        if (forceFollow) this.setFollowing(true);
         this.updateActiveLine(index);
 
         if (!audioLoaded) return;
