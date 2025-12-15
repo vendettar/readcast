@@ -22,6 +22,11 @@ class UIManager {
       themeAction: document.getElementById('themeAction'),
       shortcutAction: document.getElementById('shortcutAction'),
       qaAction: document.getElementById('qaAction'),
+      zoomOutBtn: document.getElementById('zoomOutBtn'),
+      zoomInBtn: document.getElementById('zoomInBtn'),
+      zoomValueText: document.getElementById('zoomValueText'),
+      zoomResetBtn: document.getElementById('zoomResetBtn'),
+      zoomControl: document.querySelector('.zoom-direct'),
       warningsList: document.querySelector('.warnings-list'),
       emptyPanel: document.querySelector('.empty-panel'),
       floatingPanel: document.querySelector('.floating-panel'),
@@ -105,13 +110,12 @@ class UIManager {
     // Render banners
     warnings.forEach(key => {
         const banner = document.createElement('div');
-        banner.className = 'warning-banner visible';
+        banner.className = 'warning-banner panel-surface visible';
         banner.setAttribute('role', 'alert');
         
-        const icon = document.createElement('img');
-        icon.src = 'assets/error.svg';
-        icon.className = 'warning-icon';
-        icon.alt = '';
+        const icon = document.createElement('span');
+        icon.className = 'warning-icon mask-icon icon-error';
+        icon.setAttribute('aria-hidden', 'true');
         
         const text = document.createElement('span');
         text.className = 'warning-text';
@@ -156,6 +160,18 @@ class UIManager {
     }
     this.setDropTitleText(isEmpty, t);
     this.togglePanels(isEmpty);
+  }
+
+  toggleZoomControl(visible) {
+    if (this.elements.zoomControl) {
+        this.elements.zoomControl.style.display = visible ? 'flex' : 'none';
+    }
+  }
+
+  updateFollowButtonState(isPlaying) {
+    if (this.elements.followButton) {
+        this.elements.followButton.classList.toggle('playing', isPlaying);
+    }
   }
 
   formatTime(seconds) {
@@ -221,20 +237,19 @@ class UIManager {
     const modeRow = document.createElement('div');
     modeRow.className = 'theme-row mode-row';
     const modes = [
-        { mode: 'light', icon: 'assets/light_mode.svg', labelKey: 'themeModeLight' },
-        { mode: 'dark', icon: 'assets/dark_mode.svg', labelKey: 'themeModeDark' },
-        { mode: 'system', icon: 'assets/computer.svg', labelKey: 'themeModeSystem' }
+        { mode: 'light', iconClass: 'icon-light-mode', labelKey: 'themeModeLight' },
+        { mode: 'dark', iconClass: 'icon-dark-mode', labelKey: 'themeModeDark' },
+        { mode: 'system', iconClass: 'icon-computer', labelKey: 'themeModeSystem' }
     ];
 
-    modes.forEach(({ mode, icon, labelKey }) => {
+    modes.forEach(({ mode, iconClass, labelKey }) => {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'theme-mode-btn';
         button.dataset.mode = mode;
-        const iconEl = document.createElement('img');
-        iconEl.src = icon;
-        iconEl.alt = '';
-        iconEl.className = 'theme-mode-icon';
+        const iconEl = document.createElement('span');
+        iconEl.className = `theme-mode-icon mask-icon ${iconClass}`;
+        iconEl.setAttribute('aria-hidden', 'true');
         const label = document.createElement('span');
         label.className = 'theme-mode-label sr-only';
         label.textContent = t(labelKey);

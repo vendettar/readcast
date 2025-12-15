@@ -9,48 +9,56 @@
     <link rel="stylesheet" href="styles/player.css">
 </head>
 <body class="theme-mode-system state-empty">
-    <div class="top-bar">
-        <div class="logo-mark">
-            <img src="assets/readcast.svg" alt="Readcast logo" class="logo-icon">
-            <span class="logo-text">Readcast</span>
-        </div>
-        <div class="quick-actions">
+	    <header class="top-bar">
+	        <div class="logo-mark panel-surface">
+	            <img src="assets/readcast.svg" alt="Readcast logo" class="logo-icon">
+	            <span class="logo-text">Readcast</span>
+	        </div>
+	        <div class="quick-actions">
+            <div class="zoom-direct panel-surface" style="display: none;">
+                <span id="zoomValueText" class="zoom-value">100%</span>
+                <button id="zoomOutBtn" class="zoom-btn" aria-label="Zoom Out">−</button>
+                <button id="zoomInBtn" class="zoom-btn" aria-label="Zoom In">+</button>
+                <button id="zoomResetBtn" class="zoom-reset-btn" aria-label="Reset Zoom" data-i18n="resetZoom">Reset</button>
+            </div>
             <div class="action" id="languageAction">
-                <button class="action-button" aria-haspopup="true" aria-expanded="false" aria-label="Language">
+                <button class="action-button panel-surface" aria-haspopup="true" aria-expanded="false" aria-label="Language">
                     <svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true">
                         <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6" />
                         <path d="M3 12h18M12 3c2.3 3 3.5 6 0 18M12 3c-2.3 3-3.5 6 0 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
                     </svg>
                 </button>
-                <div class="action-dropdown" id="languageDropdown">
+                <div class="action-dropdown panel-surface" id="languageDropdown">
                 </div>
             </div>
             <div class="action" id="themeAction">
-                <button class="action-button" aria-haspopup="true" aria-expanded="false" aria-label="Theme">
+                <button class="action-button panel-surface" aria-haspopup="true" aria-expanded="false" aria-label="Theme">
                     <svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M12 4a8 8 0 0 0-8 8 8 8 0 0 0 9 7 3 3 0 0 1 4.5-3.2A2.5 2.5 0 0 0 20 13V12A8 8 0 0 0 12 4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
                         <circle cx="9" cy="10" r="1" fill="currentColor" />
                         <circle cx="14" cy="7" r="1" fill="currentColor" />
                     </svg>
                 </button>
-                <div class="action-dropdown" id="themeDropdown">
+                <div class="action-dropdown panel-surface" id="themeDropdown">
                 </div>
-            </div>
-        </div>
-    </div>
+	            </div>
+	        </div>
+	    </header>
 
-    <div class="cover-wrapper">
-        <div id="coverCard" class="floating-card cover-card">
-            <img id="coverImage" alt="Cover" class="cover-image">
-        </div>
-    </div>
+	    <main id="appMain">
+
+	    <div class="cover-wrapper">
+	        <div id="coverCard" class="floating-card panel-surface cover-card">
+	            <img id="coverImage" alt="Cover" class="cover-image">
+	        </div>
+	    </div>
 
     <div class="empty-panel">
         <div class="combined-card">
             <div class="warning-container"></div>
             <p class="intro-lead" data-i18n="introLead">Listen to podcasts, read the text.</p>
             <div class="drop-wrapper drop-wrapper-empty">
-            <div id="dropZoneEmpty" class="file-drop-zone">
+            <div id="dropZoneEmpty" class="file-drop-zone file-drop-zone--empty">
                 <p class="drop-title">
                     <span class="drop-title-text" data-i18n="dropTitleIntro">Drag & drop or click to add MP3 and SRT files</span>
                 </p>
@@ -74,7 +82,7 @@
         <div class="warning-container">
             <div class="warnings-list"></div>
         </div>
-        <div id="dropZoneFloating" class="file-drop-zone floating-card">
+        <div id="dropZoneFloating" class="file-drop-zone file-drop-zone--floating floating-card panel-surface">
             <p class="drop-title">
                 <span class="drop-title-text" data-i18n="dropTitleShort">Drag & drop or click to add files</span>
             </p>
@@ -104,7 +112,7 @@
                 <span class="sr-only" data-i18n="btnNext">Next line</span>
             </button>
         </div>
-        <div class="floating-card progress-card">
+        <div class="floating-card panel-surface progress-card">
             <div class="progress-row">
                 <span id="progressCurrent" class="time-label">0:00</span>
                 <input id="progressBar" class="progress-bar" type="range" min="0" max="0" step="0.01" value="0" aria-label="Progress">
@@ -117,31 +125,35 @@
 
     <div class="fab-dock">
         <div class="shortcut-fab action" id="shortcutAction">
-            <button class="action-button" aria-haspopup="true" aria-expanded="false" aria-label="Shortcuts">
-                <img src="assets/keyboard.svg" alt="" class="action-icon">
+            <button class="action-button panel-surface" aria-haspopup="true" aria-expanded="false" aria-label="Shortcuts">
+                <span class="action-icon mask-icon icon-keyboard" aria-hidden="true"></span>
             </button>
-            <div class="action-dropdown shortcut-dropdown">
+            <div class="action-dropdown panel-surface shortcut-dropdown">
                 <strong data-i18n="shortcutTitle">Shortcuts</strong>
                 <div class="shortcut-row">
                     <span class="keycap" data-i18n="shortcutSpaceKey">Space</span>
                     <span class="shortcut-label" data-i18n="shortcutPlayLabel">Play / Pause</span>
                 </div>
                 <div class="shortcut-row">
-                    <span class="keycap keycap-arrow">⟵</span>
+                    <span class="keycap keycap-arrow">
+                        <span class="keycap-icon mask-icon icon-arrow-left" aria-hidden="true"></span>
+                    </span>
                     <span class="shortcut-label" data-i18n="shortcutPrevLabel">Previous line</span>
                 </div>
                 <div class="shortcut-row">
-                    <span class="keycap keycap-arrow">⟶</span>
+                    <span class="keycap keycap-arrow">
+                        <span class="keycap-icon mask-icon icon-arrow-right" aria-hidden="true"></span>
+                    </span>
                     <span class="shortcut-label" data-i18n="shortcutNextLabel">Next line</span>
                 </div>
             </div>
         </div>
 
         <div class="qa-fab action" id="qaAction">
-            <button class="action-button" aria-haspopup="true" aria-expanded="false" aria-label="Q&A">
-                <img src="assets/question.svg" alt="" class="action-icon">
+            <button class="action-button panel-surface" aria-haspopup="true" aria-expanded="false" aria-label="Q&A">
+                <span class="action-icon mask-icon icon-question" aria-hidden="true"></span>
             </button>
-            <div class="action-dropdown qa-dropdown">
+            <div class="action-dropdown panel-surface qa-dropdown">
                 <div class="qa-item">
                     <div class="qa-question" data-i18n="qaQuestionReadcast">What is Readcast?</div>
                     <div class="qa-answer" data-i18n="qaAnswerReadcast">
@@ -173,11 +185,25 @@
         </div>
     </template>
 
-    <button id="followCurrentBtn" class="follow-current-btn" type="button" aria-hidden="true">
-        <span class="follow-current-icon" aria-hidden="true"></span>
-        <span class="follow-current-label" data-i18n="followCurrent">Go to current</span>
-    </button>
+	    <button id="followCurrentBtn" class="follow-current-btn" type="button" aria-label="Go to current">
+	        <svg class="wave-icon" viewBox="0 0 64 24" width="48" height="18" fill="currentColor" aria-hidden="true">
+	            <rect class="wave-bar bar1" x="2" y="11" width="3" height="10" rx="1.5"></rect>
+	            <rect class="wave-bar bar2" x="7" y="6" width="3" height="15" rx="1.5"></rect>
+            <rect class="wave-bar bar3" x="12" y="9" width="3" height="12" rx="1.5"></rect>
+            <rect class="wave-bar bar4" x="17" y="12" width="3" height="9" rx="1.5"></rect>
+            <rect class="wave-bar bar5" x="22" y="8" width="3" height="13" rx="1.5"></rect>
+            <rect class="wave-bar bar6" x="27" y="5" width="3" height="16" rx="1.5"></rect>
+            <rect class="wave-bar bar7" x="32" y="10" width="3" height="11" rx="1.5"></rect>
+            <rect class="wave-bar bar8" x="37" y="13" width="3" height="8" rx="1.5"></rect>
+            <rect class="wave-bar bar9" x="42" y="7" width="3" height="14" rx="1.5"></rect>
+            <rect class="wave-bar bar10" x="47" y="11" width="3" height="10" rx="1.5"></rect>
+            <rect class="wave-bar bar11" x="52" y="6" width="3" height="15" rx="1.5"></rect>
+            <rect class="wave-bar bar12" x="57" y="9" width="3" height="12" rx="1.5"></rect>
+	        </svg>
+	    </button>
 
-    <script type="module" src="scripts/app.js"></script>
+	    </main>
+
+	    <script type="module" src="scripts/app.js"></script>
 </body>
 </html>

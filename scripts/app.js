@@ -7,6 +7,7 @@ import { setupActionMenus } from './modules/actions.js';
 import StateManager from './modules/stateManager.js';
 import FileManager from './modules/fileManager.js';
 import MediaManager from './modules/mediaManager.js';
+import SelectionManager from './modules/selectionManager.js';
 import uiManager from './modules/uiManager.js';
 
 const PREF_STORAGE_KEY = 'readcastPrefs';
@@ -91,6 +92,7 @@ class ReadcastPlayer {
         this.themeModeButtons = [];
         this.canvasButtons = [];
         this.unwatchSystemTheme = null;
+        this.selectionManager = new SelectionManager(this.t);
     }
 
     persistPreferences(partialPrefs) {
@@ -109,6 +111,7 @@ class ReadcastPlayer {
         this.applyTheme();
         this.bindFollowControls();
         this.setupProgressControls();
+        this.bindZoomControls();
 
         this.stateManager.subscribe((state, oldState, changedKeys) => {
             const warningKeys = ['audioLoaded', 'subtitlesLoaded', 'attemptedPlayWithoutAudio', 'attemptedNavWithoutSubtitles', 'vbrHeaderMissing', 'fileError', 'audioError'];
@@ -121,22 +124,137 @@ class ReadcastPlayer {
             if (changedKeys.some((key) => ['audioLoaded', 'subtitlesLoaded'].includes(key))) {
                 this.uiManager.updateMediaIndicators(state);
                 this.uiManager.updateEmptyState(state, this.t);
+                this.uiManager.toggleZoomControl(state.subtitlesLoaded);
                 this.uiManager.setDropTitleText(!state.audioLoaded && !state.subtitlesLoaded, this.t);
             }
         });
 
         this.uiManager.updateMediaIndicators(this.stateManager.getState());
         this.uiManager.updateEmptyState(this.stateManager.getState(), this.t);
+        this.uiManager.toggleZoomControl(this.stateManager.getState().subtitlesLoaded);
         this.uiManager.elements.body.classList.add('ready');
+    }
+
+    bindZoomControls() {
+        this.zoomScale = 1;
+        const MIN_ZOOM = 0.5;
+        const MAX_ZOOM = 3.0;
+        const ZOOM_STEP = 0.1;
+        const HIDE_DELAY = 2000; // 2 seconds
+        const { zoomOutBtn, zoomInBtn, zoomValueText, zoomResetBtn, zoomControl } = this.uiManager.elements;
+
+        this.hideZoomBarTimer = null; // Initialize timer
+
+        const hideZoomBar = () => {
+            if (zoomControl) {
+                zoomControl.classList.remove('show');
+            }
+        };
+
+        const scheduleHide = () => {
+            if (this.hideZoomBarTimer) clearTimeout(this.hideZoomBarTimer);
+            this.hideZoomBarTimer = setTimeout(hideZoomBar, HIDE_DELAY);
+        };
+
+        const cancelHide = () => {
+            if (this.hideZoomBarTimer) clearTimeout(this.hideZoomBarTimer);
+            this.hideZoomBarTimer = null;
+        };
+
+        const showZoomBar = () => {
+            if (zoomControl) {
+                zoomControl.classList.add('show');
+                scheduleHide(); // Always schedule hide after showing
+            }
+        };
+
+        const updateZoom = (delta, absoluteValue = null) => {
+            let newScale;
+            if (absoluteValue !== null) {
+                newScale = Math.min(Math.max(absoluteValue, MIN_ZOOM), MAX_ZOOM);
+            } else {
+                newScale = Math.min(Math.max(this.zoomScale + delta, MIN_ZOOM), MAX_ZOOM);
+            }
+            this.zoomScale = newScale;
+            document.body.style.setProperty('--zoom-scale', this.zoomScale);
+            
+            // Hide selection menu and clear highlight on zoom
+            if (this.selectionManager) {
+                this.selectionManager.hideContextMenu();
+            }
+            
+            // Update UI
+            if (zoomValueText) zoomValueText.textContent = `${Math.round(this.zoomScale * 100)}%`;
+            showZoomBar(); // Show and schedule hide after every update
+        };
+
+        // Initial hide (if subtitles not loaded)
+        if (!this.stateManager.getState().subtitlesLoaded && zoomControl) {
+            zoomControl.classList.remove('show');
+        } else {
+            showZoomBar(); // Show initially if subtitles are already loaded (e.g., page refresh)
+        }
+
+        if (zoomOutBtn) {
+            zoomOutBtn.addEventListener('click', () => { updateZoom(-ZOOM_STEP); });
+        }
+
+        if (zoomInBtn) {
+            zoomInBtn.addEventListener('click', () => { updateZoom(ZOOM_STEP); });
+        }
+
+        if (zoomResetBtn) {
+            zoomResetBtn.addEventListener('click', () => { updateZoom(0, 1); });
+        }
+        
+        // Mouse interaction with the zoom bar itself
+        if (zoomControl) {
+            zoomControl.addEventListener('mouseenter', cancelHide);
+            zoomControl.addEventListener('mouseleave', scheduleHide);
+        }
+
+        window.addEventListener('wheel', (event) => {
+            if (event.ctrlKey || event.metaKey) {
+                event.preventDefault(); // Always prevent browser zoom
+                if (this.stateManager.getState().subtitlesLoaded) {
+                    // Normalize delta for wheel
+                    const delta = -event.deltaY * 0.002;
+                    updateZoom(delta);
+                }
+            }
+        }, { passive: false });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.ctrlKey || event.metaKey) {
+                if (event.key === '=' || event.key === '+' || event.code === 'NumpadAdd') {
+                    event.preventDefault(); // Always prevent browser zoom
+                    if (this.stateManager.getState().subtitlesLoaded) {
+                        updateZoom(ZOOM_STEP);
+                    }
+                } else if (event.key === '-' || event.code === 'NumpadSubtract') {
+                    event.preventDefault(); // Always prevent browser zoom
+                    if (this.stateManager.getState().subtitlesLoaded) {
+                        updateZoom(-ZOOM_STEP);
+                    }
+                } else if (event.key === '0' || event.code === 'Numpad0') {
+                    event.preventDefault(); // Always prevent browser zoom
+                    if (this.stateManager.getState().subtitlesLoaded) {
+                        updateZoom(0, 1);
+                    }
+                }
+            }
+        });
     }
 
     handlePlay() {
         this.uiManager.updatePlayButtonIcon(false);
+        this.uiManager.updateFollowButtonState(true);
         this.startSubtitleSync();
     }
 
     handlePause() {
         this.uiManager.updatePlayButtonIcon(true);
+        this.uiManager.updateFollowButtonState(false);
         this.stopSubtitleSync();
     }
 
@@ -353,6 +471,8 @@ class ReadcastPlayer {
         this.uiManager.updateThemeControlLabels(this.t);
         this.uiManager.renderWarnings(this.stateManager.getState(), this.t);
         this.uiManager.updateCoverArt(this.stateManager.getState().coverArtUrl);
+        this.selectionManager.updateTranslations(this.t);
+        if (this.uiManager.elements.zoomResetBtn) this.uiManager.elements.zoomResetBtn.textContent = this.t('resetZoom');
     }
 
     setupProgressControls() {
@@ -500,6 +620,7 @@ class ReadcastPlayer {
             });
             // Reset UI/play state when swapping sources
             this.uiManager.updatePlayButtonIcon(true);
+            this.uiManager.updateFollowButtonState(false);
             this.stopSubtitleSync();
             this.isScrubbingProgress = false;
             this.audioDuration = 0;
@@ -575,6 +696,33 @@ class ReadcastPlayer {
                 if (this.isPointerOnRenderedText(textEl, event)) return;
             }
             this.jumpToSubtitle(index, { forceFollow: true });
+        });
+
+        element.addEventListener('mousedown', (event) => {
+            const textEl = element.querySelector('.subtitle-text');
+            if (textEl) this.selectionManager.handleSelectionEvent(event, textEl);
+        });
+
+        element.addEventListener('mousemove', (event) => {
+            const textEl = element.querySelector('.subtitle-text');
+            if (textEl) this.selectionManager.handleSelectionEvent(event, textEl);
+        });
+
+        element.addEventListener('mouseup', (event) => {
+            const textEl = element.querySelector('.subtitle-text');
+            if (textEl) this.selectionManager.handleSelectionEvent(event, textEl);
+        });
+
+        element.addEventListener('dblclick', (event) => {
+            const target = event.target && event.target.nodeType === Node.TEXT_NODE ? event.target.parentElement : event.target;
+            const textEl = element.querySelector('.subtitle-text');
+            if (!textEl || !target || !textEl.contains(target)) return;
+            this.selectionManager.handleSelectionEvent(event, textEl);
+        });
+
+        element.addEventListener('contextmenu', (event) => {
+            const textEl = element.querySelector('.subtitle-text');
+            if (textEl) this.selectionManager.handleSelectionEvent(event, textEl);
         });
 
         return element;

@@ -14,11 +14,13 @@ export function getCanvasPresets() {
 
 export function applyThemeMode(mode, body = document.body) {
     if (!body) return { resolved: 'light', mode };
+    body.classList.add('theme-switching');
     const resolved = resolveMode(mode);
     body.classList.remove(...Object.values(MODE_CLASS_MAP), 'theme-mode-system');
     body.dataset.themeMode = mode;
     body.dataset.themeResolved = resolved;
     body.classList.add(MODE_CLASS_MAP[resolved]);
+    requestAnimationFrame(() => body.classList.remove('theme-switching'));
     return { resolved, mode };
 }
 

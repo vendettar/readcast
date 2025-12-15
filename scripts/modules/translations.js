@@ -36,7 +36,6 @@ export const translations = {
             invalidFiles: '请导入 .mp3 或 .srt 文件',
             audioMissing: '还未上传音频文件',
             subtitleMissing: '还未上传字幕文件',
-            followCurrent: '回到当前',
             vbrWarning: 'MP3 缺失 VBR 头信息，跳转可能不准。',
             audioError: '音频播放出错',
             qaQuestionReadcast: '什么是 Readcast？',
@@ -44,7 +43,12 @@ export const translations = {
             qaQuestionPrivacy: 'Readcast 会上传我的文件吗？',
             qaAnswerPrivacy: '所有处理都在浏览器内完成；文件不会被上传。',
             qaQuestionVbr: '为什么某些 MP3 跳转不准？',
-            qaAnswerVbr: '部分缺少 VBR 头的可变比特率 MP3 跳转会不精准，重新上传带 Xing/VBR 头的 MP3 文件可以改善。可以使用命令：ffmpeg -i input.mp3 -c:a copy -write_xing 1 output.mp3'
+            qaAnswerVbr: '部分缺少 VBR 头的可变比特率 MP3 跳转会不精准，重新上传带 Xing/VBR 头的 MP3 文件可以改善。可以使用命令：ffmpeg -i input.mp3 -c:a copy -write_xing 1 output.mp3',
+            contextCopy: '复制',
+            contextCopyLine: '复制整句',
+            contextSearchWeb: '搜索网页',
+            contextLookup: '查词',
+            resetZoom: '重置'
         },
         en: {
             panelTitle: 'Listening Panel',
@@ -83,7 +87,6 @@ export const translations = {
             invalidFiles: 'Please import an .mp3 or .srt file',
             audioMissing: 'Audio file not uploaded yet',
             subtitleMissing: 'Subtitle file not uploaded yet',
-            followCurrent: 'Go to current',
             vbrWarning: 'MP3 VBR header missing. Seeking may be inaccurate.',
             audioError: 'Audio playback error',
             qaQuestionReadcast: 'What is Readcast?',
@@ -91,7 +94,12 @@ export const translations = {
             qaQuestionPrivacy: 'Does Readcast upload my files?',
             qaAnswerPrivacy: 'All processing happens in the browser; files are not uploaded anywhere.',
             qaQuestionVbr: 'Why might seeking be inaccurate for some MP3s?',
-            qaAnswerVbr: 'Some VBR .mp3 files without proper headers may seek less accurately; uploading an MP3 with a Xing/VBR header can improve jumping precision. You can add the header with: ffmpeg -i input.mp3 -c:a copy -write_xing 1 output.mp3'
+            qaAnswerVbr: 'Some VBR .mp3 files without proper headers may seek less accurately; uploading an MP3 with a Xing/VBR header can improve jumping precision. You can add the header with: ffmpeg -i input.mp3 -c:a copy -write_xing 1 output.mp3',
+            contextCopy: 'Copy',
+            contextCopyLine: 'Copy sentence',
+            contextSearchWeb: 'Search Web',
+            contextLookup: 'Lookup',
+            resetZoom: 'Reset'
         },
         ja: {
             panelTitle: 'リスニングパネル',
@@ -130,7 +138,6 @@ export const translations = {
             invalidFiles: '.mp3 または .srt ファイルを追加してください',
             audioMissing: '音声ファイルがまだありません',
             subtitleMissing: '字幕ファイルがまだありません',
-            followCurrent: '現在に戻る',
             vbrWarning: 'MP3 VBRヘッダーがありません。シークが不正確になる可能性があります。',
             audioError: '音声再生エラー',
             qaQuestionReadcast: 'Readcast とは？',
@@ -138,7 +145,12 @@ export const translations = {
             qaQuestionPrivacy: 'Readcast はファイルをアップロードしますか？',
             qaAnswerPrivacy: '処理はすべてブラウザ内で行われ、ファイルはアップロードされません。',
             qaQuestionVbr: '一部のMP3でシークが不正確なのはなぜ？',
-            qaAnswerVbr: 'VBRヘッダーがないMP3はシークが不正確になる場合があります。Xing/VBRヘッダー付きのMP3を再アップロードすると改善します。ヘッダー追加の例: ffmpeg -i input.mp3 -c:a copy -write_xing 1 output.mp3'
+            qaAnswerVbr: 'VBRヘッダーがないMP3はシークが不正確になる場合があります。Xing/VBRヘッダー付きのMP3を再アップロードすると改善します。ヘッダー追加の例: ffmpeg -i input.mp3 -c:a copy -write_xing 1 output.mp3',
+            contextCopy: 'コピー',
+            contextCopyLine: '文をコピー',
+            contextSearchWeb: 'ウェブ検索',
+            contextLookup: '辞書',
+            resetZoom: 'リセット'
         },
         ko: {
             panelTitle: '리스닝 패널',
@@ -177,7 +189,6 @@ export const translations = {
             invalidFiles: '.mp3 또는 .srt 파일을 추가하세요',
             audioMissing: '오디오 파일이 아직 없습니다',
                         subtitleMissing: '자막 파일이 아직 없습니다',
-                        followCurrent: '현재로 이동',
                         vbrWarning: 'MP3 VBR 헤더가 누락되었습니다. 탐색이 부정확할 수 있 습니다.',
                         audioError: '오디오 재생 오류',
                         qaQuestionReadcast: 'Readcast란?',
@@ -185,7 +196,12 @@ export const translations = {
                         qaQuestionPrivacy: 'Readcast가 내 파일을 업로드하나요?',
                         qaAnswerPrivacy: '모든 처리는 브라우저 안에서만 이루어지며, 파일은 업로드되지 않습니다.',
                         qaQuestionVbr: '일부 MP3에서 탐색이 부정확한 이유는?',
-                        qaAnswerVbr: 'VBR 헤더가 없는 MP3는 탐색이 덜 정확할 수 있으며, Xing/VBR 헤더가 포함된 MP3를 다시 업로드하면 개선됩니다. 다음 명령으로 헤더를 추가할 수 있습니다: ffmpeg -i input.mp3 -c:a copy -write_xing 1 output.mp3'
+                        qaAnswerVbr: 'VBR 헤더가 없는 MP3는 탐색이 덜 정확할 수 있으며, Xing/VBR 헤더가 포함된 MP3를 다시 업로드하면 개선됩니다. 다음 명령으로 헤더를 추가할 수 있습니다: ffmpeg -i input.mp3 -c:a copy -write_xing 1 output.mp3',
+                        contextCopy: '복사',
+                        contextCopyLine: '문장 복사',
+                        contextSearchWeb: '웹 검색',
+                        contextLookup: '사전',
+                        resetZoom: '초기화'
                     },
                     de: {
                         panelTitle: 'Hörpanel',
@@ -224,7 +240,6 @@ export const translations = {
             invalidFiles: 'Bitte eine .mp3- oder .srt-Datei importieren',
             audioMissing: 'Audio-Datei noch nicht hochgeladen',
             subtitleMissing: 'Untertitel-Datei noch nicht hochgeladen',
-                        followCurrent: 'Zur aktuellen Zeile',
                         vbrWarning: 'MP3 VBR-Header fehlt. Die Suche ist möglicherweise ungenau.',
                         audioError: 'Audiowiedergabefehler',
                         qaQuestionReadcast: 'Was ist Readcast?',
@@ -232,7 +247,12 @@ export const translations = {
                         qaQuestionPrivacy: 'Lädt Readcast meine Dateien hoch?',
                         qaAnswerPrivacy: 'Die Verarbeitung erfolgt komplett im Browser; Dateien werden nicht hochgeladen.',
                         qaQuestionVbr: 'Warum ist das Springen bei manchen MP3s ungenau?',
-                        qaAnswerVbr: 'Bei VBR-MP3s ohne korrekten Header kann das Springen ungenau sein; ein erneutes Hochladen einer MP3 mit Xing/VBR-Header verbessert die Genauigkeit. Den Header kannst du mit folgendem Befehl hinzufügen: ffmpeg -i input.mp3 -c:a copy -write_xing 1 output.mp3'
+                        qaAnswerVbr: 'Bei VBR-MP3s ohne korrekten Header kann das Springen ungenau sein; ein erneutes Hochladen einer MP3 mit Xing/VBR-Header verbessert die Genauigkeit. Den Header kannst du mit folgendem Befehl hinzufügen: ffmpeg -i input.mp3 -c:a copy -write_xing 1 output.mp3',
+                        contextCopy: 'Kopieren',
+                        contextCopyLine: 'Satz kopieren',
+                        contextSearchWeb: 'Web durchsuchen',
+                        contextLookup: 'Nachschlagen',
+                        resetZoom: 'Zurücksetzen'
                     },
                     es: {
                         panelTitle: 'Panel de escucha',                    dropTitleIntro: 'Arrastra o haz clic para subir archivos MP3 y SRT',
@@ -270,7 +290,6 @@ export const translations = {
                     invalidFiles: 'Importa un archivo .mp3 o .srt',
                     audioMissing: 'Todavía no se ha subido el archivo de audio',
                     subtitleMissing: 'Todavía no se ha subido el archivo de subtítulos',
-                                followCurrent: 'Volver a la actual',
                                 vbrWarning: 'Falta el encabezado MP3 VBR. La búsqueda puede ser inexacta.',
                                 audioError: 'Error de reproducción de audio',
                                 qaQuestionReadcast: '¿Qué es Readcast?',
@@ -278,7 +297,12 @@ export const translations = {
                                 qaQuestionPrivacy: '¿Readcast sube mis archivos?',
                                 qaAnswerPrivacy: 'Todo se procesa en el navegador; los archivos no se suben a ningún lado.',
                                 qaQuestionVbr: '¿Por qué algunos MP3 buscan con poca precisión?',
-                                qaAnswerVbr: 'Algunos MP3 VBR sin encabezado adecuado pueden buscar con menos precisión; volver a subir un MP3 con encabezado Xing/VBR mejora los saltos. Puedes añadir el encabezado con: ffmpeg -i input.mp3 -c:a copy -write_xing 1 output.mp3'
+                                qaAnswerVbr: 'Algunos MP3 VBR sin encabezado adecuado pueden buscar con menos precisión; volver a subir un MP3 con encabezado Xing/VBR mejora los saltos. Puedes añadir el encabezado con: ffmpeg -i input.mp3 -c:a copy -write_xing 1 output.mp3',
+                                contextCopy: 'Copiar',
+                                contextCopyLine: 'Copiar frase',
+                                contextSearchWeb: 'Buscar en la web',
+                                contextLookup: 'Buscar',
+                                resetZoom: 'Reiniciar'
                             }
                         };        
         export const languageNativeNames = {

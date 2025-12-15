@@ -31,5 +31,4 @@ issue*/
 # Local tools
 .claude/
 
-TODO*.md
-todo*.md
+local-folder/

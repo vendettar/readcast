@@ -5,11 +5,6 @@ const STATE_LABELS = {
 };
 
 const DEFAULT_FEEDBACK_DELAY = 1500;
-const ICON_PATHS = {
-    default: 'assets/copy.svg',
-    success: 'assets/check.svg',
-    error: 'assets/error.svg'
-};
 
 export function createCopyButton(text, { t, feedbackDelay = DEFAULT_FEEDBACK_DELAY } = {}) {
     const button = document.createElement('button');
@@ -18,10 +13,9 @@ export function createCopyButton(text, { t, feedbackDelay = DEFAULT_FEEDBACK_DEL
     button.dataset.copyState = 'default';
     button.setAttribute('aria-label', resolveLabel('default', t));
 
-    const icon = document.createElement('img');
-    icon.src = ICON_PATHS.default;
-    icon.alt = '';
-    icon.className = 'subtitle-copy-icon';
+    const icon = document.createElement('span');
+    icon.className = 'subtitle-copy-icon mask-icon icon-copy';
+    icon.setAttribute('aria-hidden', 'true');
     button.appendChild(icon);
 
     button.addEventListener('click', (event) => {
@@ -50,8 +44,8 @@ function setCopyButtonState(button, state, t, feedbackDelay) {
 
     const iconEl = button.querySelector('.subtitle-copy-icon');
     if (iconEl) {
-        const iconPath = ICON_PATHS[state] || ICON_PATHS.default;
-        iconEl.src = iconPath;
+        iconEl.classList.remove('icon-copy', 'icon-check', 'icon-error');
+        iconEl.classList.add(state === 'success' ? 'icon-check' : state === 'error' ? 'icon-error' : 'icon-copy');
     }
 
     if (state !== 'default') {
