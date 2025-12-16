@@ -31,12 +31,13 @@ body {
 
     /* Radius */
     --radius-lg: 16px;
+    --radius-pill: 14px;
     --radius-md: 12px;
     --radius-sm: 10px;
     --radius-xs: 8px;
-    --radius-pill: 14px;
-    --radius-xxs: 6px;
-    --radius-xxxs: 7px;
+    --radius-xxs: 7px;
+    --radius-xxxs: 6px;
+    --radius-xxxxs: 5px;
     --radius-full: 999px;
     --radius-circle: 50%;
 
@@ -47,17 +48,17 @@ body {
     --space-8: 8px;
     --space-10: 10px;
     --space-12: 12px;
+    --space-14: 14px;
+    --space-15: 15px;
     --space-16: 16px;
+    --space-18: 18px;
+    --space-20: 20px;
+    --space-24: 24px;
+    --space-40: 40px;
     --space-54: 54px;
     --space-60: 60px;
     --space-80: 80px;
     --space-120: 120px;
-    --space-15: 15px;
-    --space-40: 40px;
-    --space-14: 14px;
-    --space-20: 20px;
-    --space-18: 18px;
-    --space-24: 24px;
 
     /* Common Multi-Value Tokens */
     --pad-card: var(--space-10) var(--space-12);
@@ -84,6 +85,7 @@ body {
     --transition-transform: transform 0.2s ease;
     --transition-bg: background-color 0.2s ease;
     --transition-fade-slow: opacity 0.3s ease;
+    --transition-theme: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, fill 0.3s ease, stroke 0.3s ease, box-shadow 0.3s ease;
 
     /* Z-Index Stack */
     --z-highlight: 2;
@@ -105,7 +107,6 @@ body {
     --empty-card-min-height: 400px;
 
     /* Selection Geometry (Scalable) */
-    --sel-bg-pad: calc(2px * var(--zoom-scale));
     --sel-pin-head-d: calc(10px * var(--zoom-scale));
     --sel-pin-head-r: calc(5px * var(--zoom-scale)); /* Radius */
     --sel-pin-total-h: calc(30px * var(--zoom-scale));
@@ -126,7 +127,23 @@ body {
     color: var(--color-text);
     padding: 0;
     opacity: 0;
-    transition: var(--transition-fade-slow);
+    transition: var(--transition-theme);
+}
+
+/* Apply theme transition to common UI elements */
+.panel-surface, 
+.action-button, 
+.circle-btn, 
+.keycap, 
+.subtitle-line,
+.file-drop-zone,
+.progress-bar,
+.qa-answer,
+.theme-mode-btn,
+.canvas-swatch,
+.action-dropdown,
+.context-menu-item {
+    transition: var(--transition-theme);
 }
 
 /* === App Boot === */
@@ -142,7 +159,9 @@ body.ready {
 }
 
 /* === Global Text Selection === */
-.subtitle-text::selection {
+.subtitle-text::selection,
+.subtitle-text *::selection {
+    background: transparent;
     background-color: transparent;
     color: inherit;
 }
@@ -161,32 +180,49 @@ body.ready {
 
 .readcast-overlay-rect {
     position: absolute;
-    background: linear-gradient(var(--selection-bg), var(--selection-bg)) no-repeat;
-    background-position: 0 var(--sel-bg-pad);
-    background-size: 100% calc(100% - var(--sel-bg-pad));
-    padding-bottom: var(--sel-bg-pad);
-    box-sizing: content-box;
+    background-color: var(--selection-bg);
 }
 
-.readcast-overlay-rect.start {
+/* === Word Hover Overlay === */
+.readcast-word-hover-overlay {
+    pointer-events: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: var(--z-highlight);
 }
 
-.readcast-overlay-rect.end {
+.readcast-word-hover-rect {
+    position: absolute;
+    border-radius: var(--radius-xxxxs);
+    background-color: var(--ui-dragover-bg-weak);
+    box-shadow: 0 0 0 1px var(--ui-ring);
+    transition: background-color 0.08s ease, box-shadow 0.08s ease;
 }
 
-/* Unified Pin Styling for Overlay Rect */
+.readcast-word-hover-rect.is-pressed {
+    background-color: var(--ui-dragover-bg);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12), 0 0 0 1px var(--ui-ring-strong);
+}
+
+/* === Selection Pins (Overlay + Highlight) === */
+.readcast-highlight::before,
+.readcast-highlight::after,
 .readcast-overlay-rect.start::before,
 .readcast-overlay-rect.end::after {
     content: '';
     position: absolute;
     width: var(--sel-pin-head-d);
     height: var(--sel-pin-total-h);
-    z-index: var(--z-highlight);
+    z-index: -1;
     pointer-events: none;
     background-repeat: no-repeat;
 }
 
 /* LEFT PIN: Head at Top, Stem Down */
+.readcast-highlight::before,
 .readcast-overlay-rect.start::before {
     left: var(--sel-pin-offset-x);
     top: var(--sel-pin-offset-y-top);
@@ -196,6 +232,7 @@ body.ready {
 }
 
 /* RIGHT PIN: Head at Bottom, Stem Up */
+.readcast-highlight::after,
 .readcast-overlay-rect.end::after {
     right: var(--sel-pin-offset-x);
     bottom: var(--sel-pin-offset-y-bottom);
@@ -622,7 +659,7 @@ body.ready {
     min-width: 0;
     box-sizing: border-box;
     font-size: 0;
-    border-radius: var(--radius-xxxs);
+    border-radius: var(--radius-xxs);
     border: 1px solid rgba(0, 0, 0, 0.16);
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5), 0 0 0 1px rgba(0, 0, 0, 0.05);
     appearance: none;
@@ -639,7 +676,7 @@ body.ready {
     content: '';
     position: absolute;
     inset: 7px;
-    border-radius: var(--radius-xxs);
+    border-radius: var(--radius-xxxs);
     border: 2px solid #fff;
     opacity: 0;
     transition: var(--transition-fade);
@@ -969,6 +1006,11 @@ body.ready {
     -webkit-mask-image: url('../assets/arrow_right.svg');
 }
 
+.icon-language {
+    mask-image: url('../assets/language.svg');
+    -webkit-mask-image: url('../assets/language.svg');
+}
+
 .icon-light-mode {
     mask-image: url('../assets/light_mode.svg');
     -webkit-mask-image: url('../assets/light_mode.svg');
@@ -1028,7 +1070,7 @@ body.ready {
     position: relative;
     padding: var(--space-12) var(--space-54) var(--space-12) var(--space-15);
     margin-bottom: var(--space-8);
-    border-radius: var(--radius-xxs);
+    border-radius: var(--radius-xxxs);
     cursor: url('../assets/touch.svg') 9 9, pointer;
     line-height: 1.6;
     color: var(--color-text);
@@ -1119,52 +1161,21 @@ body.ready {
     z-index: var(--z-text);
 }
 
+.subtitle-word.lookup-known {
+    color: var(--color-highlight);
+}
+
 .state-selecting .subtitle-text {
     cursor: none;
 }
 
 /* === Selection Highlight (Persistent) === */
 .readcast-highlight {
-    background: linear-gradient(var(--selection-bg), var(--selection-bg)) no-repeat;
-    background-position: 0 var(--sel-bg-pad);
-    background-size: 100% calc(100% - var(--sel-bg-pad));
+    background-color: var(--selection-bg);
     color: var(--selection-color);
     border-radius: 0;
     position: relative;
     cursor: text;
-    padding-bottom: var(--sel-bg-pad);
-}
-
-/* Unified Pin Styles for Static Highlight and Overlay */
-.readcast-highlight::before,
-.readcast-highlight::after,
-.readcast-overlay-rect.start::before,
-.readcast-overlay-rect.end::after {
-    content: '';
-    position: absolute;
-    width: var(--sel-pin-head-d); /* Head diameter */
-    height: var(--sel-pin-total-h); /* Total height */
-    z-index: -1; /* Always behind text to prevent overlap issues */
-    pointer-events: none;
-    background-repeat: no-repeat;
-}
-
-/* LEFT PIN: Head at Top, Stem Down */
-.readcast-highlight::before {
-    left: var(--sel-pin-offset-x);
-    top: var(--sel-pin-offset-y-top);
-    background-image:
-        radial-gradient(circle at 50% var(--sel-pin-head-r), var(--color-highlight) var(--sel-pin-head-r), transparent var(--sel-pin-grad-stop-head)),
-        linear-gradient(to right, transparent var(--sel-pin-grad-stop1), var(--color-highlight) var(--sel-pin-grad-stop1), var(--color-highlight) var(--sel-pin-grad-stop2), transparent var(--sel-pin-grad-stop2));
-}
-
-/* RIGHT PIN: Head at Bottom, Stem Up */
-.readcast-highlight::after {
-    right: var(--sel-pin-offset-x);
-    bottom: var(--sel-pin-offset-y-bottom);
-    background-image:
-        radial-gradient(circle at 50% calc(100% - var(--sel-pin-head-r)), var(--color-highlight) var(--sel-pin-head-r), transparent var(--sel-pin-grad-stop-head)),
-        linear-gradient(to right, transparent var(--sel-pin-grad-stop1), var(--color-highlight) var(--sel-pin-grad-stop1), var(--color-highlight) var(--sel-pin-grad-stop2), transparent var(--sel-pin-grad-stop2));
 }
 
 /* === Context Menu (Selection) === */
@@ -1220,6 +1231,166 @@ body.ready {
 .context-menu-item:focus-visible {
     background-color: var(--color-surface);
     color: var(--color-highlight);
+    outline: none;
+}
+
+/* === Lookup Popover === */
+.lookup-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: calc(var(--z-context-menu) - 1);
+    background: transparent;
+}
+
+.lookup-backdrop[hidden] {
+    display: none;
+}
+
+.lookup-popover {
+    position: fixed;
+    z-index: var(--z-context-menu);
+    border-radius: var(--radius-pill);
+    padding: var(--space-10);
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.2);
+    min-width: 240px;
+    max-width: min(420px, calc(100vw - 24px));
+    max-height: min(60vh, 520px);
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+    isolation: isolate;
+    --lookup-arrow-size: 8px;
+}
+
+.lookup-popover::before,
+.lookup-popover::after {
+    content: '';
+    position: absolute;
+    top: var(--lookup-arrow-top, 50%);
+    transform: translateY(-50%);
+    border-style: solid;
+    pointer-events: none;
+}
+
+/* Arrow border layer */
+.lookup-popover::before {
+    border-width: calc(var(--lookup-arrow-size) + 1px);
+    z-index: 0;
+}
+
+/* Arrow fill layer */
+.lookup-popover::after {
+    border-width: var(--lookup-arrow-size);
+    z-index: 1;
+}
+
+.lookup-popover[data-placement='right']::before {
+    left: calc(-1 * (var(--lookup-arrow-size) + 1px));
+    border-width: calc(var(--lookup-arrow-size) + 1px) calc(var(--lookup-arrow-size) + 1px)
+        calc(var(--lookup-arrow-size) + 1px) 0;
+    border-color: transparent var(--color-border) transparent transparent;
+}
+
+.lookup-popover[data-placement='right']::after {
+    left: calc(-1 * var(--lookup-arrow-size));
+    border-width: var(--lookup-arrow-size) var(--lookup-arrow-size) var(--lookup-arrow-size) 0;
+    border-color: transparent var(--color-panel) transparent transparent;
+}
+
+.lookup-popover[data-placement='left']::before {
+    right: calc(-1 * (var(--lookup-arrow-size) + 1px));
+    border-width: calc(var(--lookup-arrow-size) + 1px) 0 calc(var(--lookup-arrow-size) + 1px)
+        calc(var(--lookup-arrow-size) + 1px);
+    border-color: transparent transparent transparent var(--color-border);
+}
+
+.lookup-popover[data-placement='left']::after {
+    right: calc(-1 * var(--lookup-arrow-size));
+    border-width: var(--lookup-arrow-size) 0 var(--lookup-arrow-size) var(--lookup-arrow-size);
+    border-color: transparent transparent transparent var(--color-panel);
+}
+
+.lookup-popover[hidden] {
+    display: none;
+}
+
+.lookup-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-10);
+    margin-bottom: var(--space-6);
+}
+
+.lookup-title {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.lookup-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--color-text);
+    overflow: auto;
+    min-height: 0;
+    overflow-wrap: anywhere;
+}
+
+.lookup-popover:focus,
+.lookup-popover:focus-visible,
+.lookup-body:focus,
+.lookup-body:focus-visible {
+    outline: none;
+}
+
+.lookup-phonetic {
+    font-size: 0.75rem;
+    color: var(--color-muted);
+}
+
+.lookup-pos {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+}
+
+.lookup-example {
+    margin-top: var(--space-2);
+    font-size: 0.75rem;
+    color: var(--color-muted);
+}
+
+.lookup-body p {
+    margin: 0;
+}
+
+.lookup-definitions {
+    margin: 0;
+    padding-left: 1.25em;
+}
+
+.lookup-definitions li + li {
+    margin-top: var(--space-4);
+}
+
+.lookup-fallback {
+    color: var(--color-muted);
+}
+
+.lookup-body a {
+    color: var(--color-highlight);
+    text-decoration: none;
+}
+
+.lookup-body a:hover,
+.lookup-body a:focus-visible {
+    text-decoration: underline;
     outline: none;
 }
 

@@ -31,6 +31,9 @@ npm start
 - All processing happens in the browser; files are not uploaded anywhere.
 - Some VBR `.mp3` files without proper headers may seek less accurately. Re-saving the file with a Xing/VBR header can improve jumping precision.
 
+## Credits
+- Dictionary lookups are powered by the Free Dictionary API (`dictionaryapi.dev`). Thanks to meetDeveloper: https://github.com/meetDeveloper/freeDictionaryAPI
+
 ## Scripts
 - `npm start` – run the local server.
 - `npm run dev` – alias for `npm start`.

@@ -72,7 +72,7 @@ class UIManager {
     }
   }
 
-  renderWarnings({ audioLoaded, attemptedPlayWithoutAudio, subtitlesLoaded, attemptedNavWithoutSubtitles, vbrHeaderMissing, fileError, audioError }, t) {
+  renderWarnings({ audioLoaded, attemptedPlayWithoutAudio, subtitlesLoaded, attemptedNavWithoutSubtitles, vbrHeaderMissing, fileError, audioError, subtitleStorageTooLarge, subtitleStorageFailed }, t) {
     const list = this.elements.warningsList;
     if (!list) return;
 
@@ -82,6 +82,13 @@ class UIManager {
     // Priority 1: File Errors (transient-ish, but sticky until next drop)
     if (fileError) {
         warnings.push(fileError);
+    }
+
+    if (subtitleStorageTooLarge) {
+        warnings.push('subtitleStorageTooLarge');
+    }
+    if (subtitleStorageFailed) {
+        warnings.push('subtitleStorageFailed');
     }
 
     // Priority 2: Missing Media Warnings (Audio/Subtitle Missing on attempt)

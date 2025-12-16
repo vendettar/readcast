@@ -11,6 +11,9 @@ import SelectionManager from './modules/selectionManager.js';
 import uiManager from './modules/uiManager.js';
 
 const PREF_STORAGE_KEY = 'readcastPrefs';
+const SUBTITLE_STORAGE_KEY = 'readcastLastSrt';
+const MAX_SRT_STORAGE_BYTES = 1024 * 1024;
+const DICT_CACHE_STORAGE_KEY = 'readcastDictCache';
 
 function loadPreferences() {
     if (typeof localStorage === 'undefined') return {};
@@ -29,6 +32,63 @@ function savePreferences(prefs) {
         localStorage.setItem(PREF_STORAGE_KEY, JSON.stringify(prefs));
     } catch (error) {
         console.warn('Failed to save preferences', error);
+    }
+}
+
+function isQuotaExceeded(error) {
+    if (!error) return false;
+    const name = error.name || '';
+    const message = String(error.message || '');
+    return (
+        name === 'QuotaExceededError' ||
+        name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
+        message.includes('QuotaExceededError') ||
+        message.includes('quota') ||
+        message.includes('QUOTA')
+    );
+}
+
+function loadStoredSubtitles() {
+    if (typeof localStorage === 'undefined') return null;
+    try {
+        const raw = localStorage.getItem(SUBTITLE_STORAGE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed.content !== 'string') return null;
+        return parsed;
+    } catch (error) {
+        console.warn('Failed to load stored subtitles', error);
+        return null;
+    }
+}
+
+function clearStoredSubtitles() {
+    if (typeof localStorage === 'undefined') return;
+    try {
+        localStorage.removeItem(SUBTITLE_STORAGE_KEY);
+    } catch (error) {
+        console.warn('Failed to clear stored subtitles', error);
+    }
+}
+
+function saveStoredSubtitles(payload) {
+    if (typeof localStorage === 'undefined') return false;
+    try {
+        localStorage.setItem(SUBTITLE_STORAGE_KEY, JSON.stringify(payload));
+        return true;
+    } catch (error) {
+        if (!isQuotaExceeded(error)) {
+            console.warn('Failed to save stored subtitles', error);
+            return false;
+        }
+        try {
+            localStorage.removeItem(DICT_CACHE_STORAGE_KEY);
+            localStorage.setItem(SUBTITLE_STORAGE_KEY, JSON.stringify(payload));
+            return true;
+        } catch (retryError) {
+            console.warn('Failed to save stored subtitles after retry', retryError);
+            return false;
+        }
     }
 }
 
@@ -75,7 +135,9 @@ class ReadcastPlayer {
             coverArtUrl: '',
             isFollowing: true,
             suppressScrollDetection: false,
-            scrollReleaseTimer: null
+            scrollReleaseTimer: null,
+            subtitleStorageTooLarge: false,
+            subtitleStorageFailed: false
         });
 
         const { languageAction, themeAction, shortcutAction, qaAction } = this.uiManager.elements;
@@ -114,7 +176,17 @@ class ReadcastPlayer {
         this.bindZoomControls();
 
         this.stateManager.subscribe((state, oldState, changedKeys) => {
-            const warningKeys = ['audioLoaded', 'subtitlesLoaded', 'attemptedPlayWithoutAudio', 'attemptedNavWithoutSubtitles', 'vbrHeaderMissing', 'fileError', 'audioError'];
+            const warningKeys = [
+                'audioLoaded',
+                'subtitlesLoaded',
+                'attemptedPlayWithoutAudio',
+                'attemptedNavWithoutSubtitles',
+                'vbrHeaderMissing',
+                'fileError',
+                'audioError',
+                'subtitleStorageTooLarge',
+                'subtitleStorageFailed'
+            ];
             if (changedKeys.some((key) => warningKeys.includes(key))) {
                 this.uiManager.renderWarnings(state, this.t);
             }
@@ -128,6 +200,8 @@ class ReadcastPlayer {
                 this.uiManager.setDropTitleText(!state.audioLoaded && !state.subtitlesLoaded, this.t);
             }
         });
+
+        this.restoreStoredSubtitles();
 
         this.uiManager.updateMediaIndicators(this.stateManager.getState());
         this.uiManager.updateEmptyState(this.stateManager.getState(), this.t);
@@ -144,6 +218,7 @@ class ReadcastPlayer {
         const { zoomOutBtn, zoomInBtn, zoomValueText, zoomResetBtn, zoomControl } = this.uiManager.elements;
 
         this.hideZoomBarTimer = null; // Initialize timer
+        const isLookupModalOpen = () => Boolean(this.selectionManager && this.selectionManager.isLookupModalOpen?.());
 
         const hideZoomBar = () => {
             if (zoomControl) {
@@ -169,6 +244,7 @@ class ReadcastPlayer {
         };
 
         const updateZoom = (delta, absoluteValue = null) => {
+            if (isLookupModalOpen()) return;
             let newScale;
             if (absoluteValue !== null) {
                 newScale = Math.min(Math.max(absoluteValue, MIN_ZOOM), MAX_ZOOM);
@@ -181,6 +257,7 @@ class ReadcastPlayer {
             // Hide selection menu and clear highlight on zoom
             if (this.selectionManager) {
                 this.selectionManager.hideContextMenu();
+                this.selectionManager.hideWordHoverOverlay();
             }
             
             // Update UI
@@ -216,6 +293,7 @@ class ReadcastPlayer {
         window.addEventListener('wheel', (event) => {
             if (event.ctrlKey || event.metaKey) {
                 event.preventDefault(); // Always prevent browser zoom
+                if (isLookupModalOpen()) return;
                 if (this.stateManager.getState().subtitlesLoaded) {
                     // Normalize delta for wheel
                     const delta = -event.deltaY * 0.002;
@@ -228,16 +306,19 @@ class ReadcastPlayer {
             if (event.ctrlKey || event.metaKey) {
                 if (event.key === '=' || event.key === '+' || event.code === 'NumpadAdd') {
                     event.preventDefault(); // Always prevent browser zoom
+                    if (isLookupModalOpen()) return;
                     if (this.stateManager.getState().subtitlesLoaded) {
                         updateZoom(ZOOM_STEP);
                     }
                 } else if (event.key === '-' || event.code === 'NumpadSubtract') {
                     event.preventDefault(); // Always prevent browser zoom
+                    if (isLookupModalOpen()) return;
                     if (this.stateManager.getState().subtitlesLoaded) {
                         updateZoom(-ZOOM_STEP);
                     }
                 } else if (event.key === '0' || event.code === 'Numpad0') {
                     event.preventDefault(); // Always prevent browser zoom
+                    if (isLookupModalOpen()) return;
                     if (this.stateManager.getState().subtitlesLoaded) {
                         updateZoom(0, 1);
                     }
@@ -631,10 +712,29 @@ class ReadcastPlayer {
     async loadSubtitles(file) {
         const { subtitlesLoaded } = this.stateManager.getState();
         const hadSubtitles = subtitlesLoaded;
+        this.stateManager.updateState({ subtitleStorageTooLarge: false, subtitleStorageFailed: false });
+        const canPersist = file && Number.isFinite(file.size) ? file.size <= MAX_SRT_STORAGE_BYTES : false;
         try {
             const content = await file.text();
             const subtitles = parseSrt(content);
             this.mountSubtitles(subtitles);
+
+            if (!canPersist) {
+                this.stateManager.updateState({ subtitleStorageTooLarge: true });
+                clearStoredSubtitles();
+                return;
+            }
+
+            const persisted = saveStoredSubtitles({
+                v: 1,
+                filename: file && file.name ? file.name : '',
+                savedAt: Date.now(),
+                content
+            });
+            if (!persisted) {
+                this.stateManager.updateState({ subtitleStorageFailed: true });
+                clearStoredSubtitles();
+            }
         } catch (error) {
             console.error('Failed to load subtitles', error);
             if (!hadSubtitles) {
@@ -648,6 +748,19 @@ class ReadcastPlayer {
             } else {
                 this.stateManager.updateState({ subtitlesLoaded: false });
             }
+        }
+    }
+
+    restoreStoredSubtitles() {
+        const stored = loadStoredSubtitles();
+        if (!stored || typeof stored.content !== 'string') return;
+        try {
+            const subtitles = parseSrt(stored.content);
+            if (!Array.isArray(subtitles) || subtitles.length === 0) return;
+            this.mountSubtitles(subtitles);
+        } catch (error) {
+            console.warn('Failed to restore stored subtitles', error);
+            clearStoredSubtitles();
         }
     }
 
@@ -680,7 +793,10 @@ class ReadcastPlayer {
         const element = template.content.cloneNode(true).firstElementChild;
 
         element.querySelector('.subtitle-time').innerText = formatTimeLabel(subtitle.rawStart);
-        element.querySelector('.subtitle-text').innerText = subtitle.text;
+        const textEl = element.querySelector('.subtitle-text');
+        if (textEl) {
+            this.selectionManager.renderSubtitleText(textEl, subtitle.text);
+        }
 
         const copyButton = createCopyButton(subtitle.text, { t: this.t });
         element.appendChild(copyButton);
@@ -713,11 +829,9 @@ class ReadcastPlayer {
             if (textEl) this.selectionManager.handleSelectionEvent(event, textEl);
         });
 
-        element.addEventListener('dblclick', (event) => {
-            const target = event.target && event.target.nodeType === Node.TEXT_NODE ? event.target.parentElement : event.target;
+        element.addEventListener('mouseleave', (event) => {
             const textEl = element.querySelector('.subtitle-text');
-            if (!textEl || !target || !textEl.contains(target)) return;
-            this.selectionManager.handleSelectionEvent(event, textEl);
+            if (textEl) this.selectionManager.handleSelectionEvent(event, textEl);
         });
 
         element.addEventListener('contextmenu', (event) => {
