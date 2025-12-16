@@ -6,8 +6,6 @@ const MODE_CLASS_MAP = {
 const DEFAULT_CANVAS_COLORS = ['#FFFFFF', '#F8F9FA', '#F5FAFF', '#FFFCE8', '#FDF8F6'];
 const DARK_BASE = '#0d1117';
 
-let systemThemeListener = null;
-
 export function getCanvasPresets() {
     return DEFAULT_CANVAS_COLORS;
 }
@@ -15,9 +13,6 @@ export function getCanvasPresets() {
 export function applyThemeMode(mode, body = document.body) {
     if (!body) return { resolved: 'light', mode };
     
-    // Remove strict transition blocking to allow smooth fade
-    // body.classList.add('theme-switching'); 
-
     const resolved = resolveMode(mode);
     body.classList.remove(...Object.values(MODE_CLASS_MAP), 'theme-mode-system');
     body.dataset.themeMode = mode;
@@ -38,7 +33,6 @@ export function applyThemeMode(mode, body = document.body) {
         }
     }
 
-    // requestAnimationFrame(() => body.classList.remove('theme-switching'));
     return { resolved, mode };
 }
 
@@ -63,8 +57,7 @@ export function watchSystemTheme(onChange) {
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
     const handler = (event) => onChange(event.matches ? 'dark' : 'light');
     mq.addEventListener('change', handler);
-    systemThemeListener = () => mq.removeEventListener('change', handler);
-    return systemThemeListener;
+    return () => mq.removeEventListener('change', handler);
 }
 
 function resolveMode(mode) {

@@ -11,9 +11,6 @@ import SelectionManager from './modules/selectionManager.js';
 import uiManager from './modules/uiManager.js';
 
 const PREF_STORAGE_KEY = 'readcastPrefs';
-const SUBTITLE_STORAGE_KEY = 'readcastLastSrt';
-const MAX_SRT_STORAGE_BYTES = 1024 * 1024;
-const DICT_CACHE_STORAGE_KEY = 'readcastDictCache';
 
 function loadPreferences() {
     if (typeof localStorage === 'undefined') return {};
@@ -35,63 +32,6 @@ function savePreferences(prefs) {
     }
 }
 
-function isQuotaExceeded(error) {
-    if (!error) return false;
-    const name = error.name || '';
-    const message = String(error.message || '');
-    return (
-        name === 'QuotaExceededError' ||
-        name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
-        message.includes('QuotaExceededError') ||
-        message.includes('quota') ||
-        message.includes('QUOTA')
-    );
-}
-
-function loadStoredSubtitles() {
-    if (typeof localStorage === 'undefined') return null;
-    try {
-        const raw = localStorage.getItem(SUBTITLE_STORAGE_KEY);
-        if (!raw) return null;
-        const parsed = JSON.parse(raw);
-        if (!parsed || typeof parsed.content !== 'string') return null;
-        return parsed;
-    } catch (error) {
-        console.warn('Failed to load stored subtitles', error);
-        return null;
-    }
-}
-
-function clearStoredSubtitles() {
-    if (typeof localStorage === 'undefined') return;
-    try {
-        localStorage.removeItem(SUBTITLE_STORAGE_KEY);
-    } catch (error) {
-        console.warn('Failed to clear stored subtitles', error);
-    }
-}
-
-function saveStoredSubtitles(payload) {
-    if (typeof localStorage === 'undefined') return false;
-    try {
-        localStorage.setItem(SUBTITLE_STORAGE_KEY, JSON.stringify(payload));
-        return true;
-    } catch (error) {
-        if (!isQuotaExceeded(error)) {
-            console.warn('Failed to save stored subtitles', error);
-            return false;
-        }
-        try {
-            localStorage.removeItem(DICT_CACHE_STORAGE_KEY);
-            localStorage.setItem(SUBTITLE_STORAGE_KEY, JSON.stringify(payload));
-            return true;
-        } catch (retryError) {
-            console.warn('Failed to save stored subtitles after retry', retryError);
-            return false;
-        }
-    }
-}
-
 document.addEventListener('DOMContentLoaded', () => {
     const player = new ReadcastPlayer();
     player.init();
@@ -107,15 +47,19 @@ class ReadcastPlayer {
             () => this.stateManager.updateState({ audioError: true })
         );
         this.fileManager = new FileManager({
-            onAudioLoad: (file, hasHeader, coverUrl) => this.loadAudio(file, hasHeader, coverUrl),
-            onSubtitleLoad: (file) => this.loadSubtitles(file),
-            onWarning: () => { /* handled via state now */ },
+            onAudioLoad: (file, hasHeader, coverUrl, id) => this.loadAudio(file, hasHeader, coverUrl, id),
         });
 
         this.preferences = loadPreferences();
         this.canvasPresets = getCanvasPresets();
         const initialThemeMode = this.preferences.themeMode || 'system';
-        const initialCanvasColor = this.preferences.canvasColor || this.canvasPresets[0] || '';
+        let initialCanvasColor = this.preferences.canvasColor || this.canvasPresets[0] || '';
+
+        // Ensure uiManager.elements.body is available for early theme application
+        // this.uiManager is already initialized at the start of the constructor
+        const { resolved } = applyThemeMode(initialThemeMode, this.uiManager.elements.body);
+        const newCanvasColor = applyCanvasBackground(initialCanvasColor, this.uiManager.elements.body);
+
         this.stateManager = new StateManager({
             subtitles: [],
             currentIndex: -1,
@@ -123,10 +67,11 @@ class ReadcastPlayer {
             subtitlesLoaded: false,
             audioFilename: '',
             audioObjectUrl: '',
+            currentMediaId: null, // New: DB ID for persistence
             syncAnimationId: null,
             themeMode: initialThemeMode,
-            resolvedThemeMode: 'light',
-            canvasColor: initialCanvasColor,
+            resolvedThemeMode: resolved, // Use the immediately resolved theme
+            canvasColor: newCanvasColor, // Use the immediately applied canvas color
             attemptedPlayWithoutAudio: false,
             attemptedNavWithoutSubtitles: false,
             vbrHeaderMissing: false,
@@ -140,11 +85,12 @@ class ReadcastPlayer {
             subtitleStorageFailed: false
         });
 
-        const { languageAction, themeAction, shortcutAction, qaAction } = this.uiManager.elements;
-        this.actionControls = [languageAction, themeAction, shortcutAction, qaAction].filter(Boolean);
+        const { languageAction, themeAction, shortcutAction, qaAction, settingsAction } = this.uiManager.elements;
+        this.actionControls = [languageAction, themeAction, shortcutAction, qaAction, settingsAction].filter(Boolean);
 
         this.isScrubbingProgress = false;
         this.audioDuration = 0;
+        this.lastProgressSave = 0;
 
         const initialLanguage = this.preferences.language || 'en';
         this.translator = new Translator(initialLanguage);
@@ -154,7 +100,23 @@ class ReadcastPlayer {
         this.themeModeButtons = [];
         this.canvasButtons = [];
         this.unwatchSystemTheme = null;
-        this.selectionManager = new SelectionManager(this.t);
+        this.selectionManager = new SelectionManager(this.t, {
+            onLookupModalChange: (open) => this.handleLookupModalChange(open)
+        });
+        this.pausedForLookupModal = false;
+    }
+
+    handleLookupModalChange(open) {
+        if (!open) {
+            if (this.pausedForLookupModal && this.mediaManager && this.mediaManager.isPaused()) {
+                this.mediaManager.togglePlayPause();
+            }
+            this.pausedForLookupModal = false;
+            return;
+        }
+        if (!this.mediaManager || this.mediaManager.isPaused()) return;
+        this.pausedForLookupModal = true;
+        this.mediaManager.audioPlayer.pause();
     }
 
     persistPreferences(partialPrefs) {
@@ -169,6 +131,23 @@ class ReadcastPlayer {
         setupActionMenus(this.actionControls);
         this.initializeLanguageControls();
         this.initializeThemeControls();
+
+        // Custom Theme Toggle on Click
+        const themeBtn = this.uiManager.elements.themeAction ? this.uiManager.elements.themeAction.querySelector('button') : null;
+        if (themeBtn) {
+            themeBtn.addEventListener('click', (event) => {
+                event.preventDefault();
+                const { themeMode, resolvedThemeMode } = this.stateManager.getState();
+                let nextMode = 'light';
+                if (themeMode === 'system') {
+                    nextMode = resolvedThemeMode === 'dark' ? 'light' : 'dark';
+                } else {
+                    nextMode = themeMode === 'dark' ? 'light' : 'dark';
+                }
+                this.setThemeMode(nextMode);
+            });
+        }
+
         this.translateUi();
         this.applyTheme();
         this.bindFollowControls();
@@ -201,7 +180,31 @@ class ReadcastPlayer {
             }
         });
 
-        this.restoreStoredSubtitles();
+        // Phase A: Restore recent audio session from IndexedDB
+        this.fileManager.loadRecent().then(result => {
+             if (result && result.session) {
+                 const { session, subtitleContent } = result;
+                 
+                 // Restore subtitle
+                 if (subtitleContent) {
+                     this.loadSubtitles(subtitleContent);
+                 }
+                 
+                 // Restore playback position
+                 if (session.progress > 0 && this.uiManager.elements.audioPlayer) {
+                     if (session.duration > 0) {
+                         this.audioDuration = session.duration;
+                     }
+                     this.uiManager.elements.audioPlayer.currentTime = session.progress;
+                     this.uiManager.updateProgress(this.audioDuration || 0, session.progress);
+                 }
+                 
+                 // Update ID state if not set by onAudioLoad (e.g. subtitle only)
+                 if (session.id && !this.stateManager.getState().currentMediaId) {
+                     this.stateManager.updateState({ currentMediaId: session.id });
+                 }
+             }
+        });
 
         this.uiManager.updateMediaIndicators(this.stateManager.getState());
         this.uiManager.updateEmptyState(this.stateManager.getState(), this.t);
@@ -337,6 +340,16 @@ class ReadcastPlayer {
         this.uiManager.updatePlayButtonIcon(true);
         this.uiManager.updateFollowButtonState(false);
         this.stopSubtitleSync();
+        
+        // Save progress on pause
+        const { currentMediaId } = this.stateManager.getState();
+        const { audioPlayer } = this.uiManager.elements;
+        if (currentMediaId && audioPlayer) {
+             this.fileManager.updateProgress(currentMediaId, { 
+                 progress: audioPlayer.currentTime,
+                 lastPlayedAt: Date.now()
+             });
+        }
     }
 
     handleSeek() {
@@ -360,35 +373,62 @@ class ReadcastPlayer {
         window.addEventListener('dragover', preventWindowFileDrop);
         window.addEventListener('drop', preventWindowFileDrop);
 
-        const handleFileSelection = (files) => {
-            const { audioFile, subtitleFile, invalidFiles } = this.fileManager.handleFiles(files);
+        const handleFileSelection = async (files) => {
+            const { audioFile, subtitleFile, invalidFiles, errorType, sessionId } = await this.fileManager.handleFiles(files);
             
-            // Clear previous file errors when new files are dropped
-            let newFileError = null;
-            if (invalidFiles.length > 0) {
+            let newFileError = errorType;
+            if (!newFileError && invalidFiles.length > 0) {
                 newFileError = 'invalidFiles';
-            } else if (!audioFile && !subtitleFile) {
-                // If user selected files but none were valid mp3/srt (e.g. all ignored)
-                // This logic mirrors previous behavior
+            } else if (!newFileError && !audioFile && !subtitleFile) {
                  newFileError = 'invalidFiles';
             }
             
             const stateReset = { 
                 fileError: newFileError,
-                // Reset attempt flags on new file interaction
                 attemptedPlayWithoutAudio: false, 
                 attemptedNavWithoutSubtitles: false,
-                // Reset VBR warning state tentatively (will be updated by onAudioLoad if needed)
                 vbrHeaderMissing: false
             };
-            // Only clear cover art when an actual audio file is present (we'll replace it on load)
             if (audioFile) {
                 stateReset.coverArtUrl = '';
+                // If FileManager created a session, update state
+                if (sessionId) {
+                    stateReset.currentMediaId = sessionId;
+                }
             }
             this.stateManager.updateState(stateReset);
 
             if (fileInput) {
                 fileInput.value = '';
+            }
+            
+            // Handle Subtitle Loading
+            if (subtitleFile) {
+                const content = await subtitleFile.text();
+                
+                if (audioFile) {
+                    // Scenario: Dropped both. fileManager saved them together.
+                    // Just load to UI.
+                    this.loadSubtitles(content);
+                } else {
+                    // Scenario: Dropped only SRT.
+                    const { currentMediaId } = this.stateManager.getState();
+                    
+                    if (currentMediaId) {
+                        // Attach to current session
+                        await this.fileManager.attachSubtitleToSession(currentMediaId, subtitleFile.name, content);
+                        this.loadSubtitles(content);
+                    } else {
+                        // Create NEW Subtitle-Only session
+                        const newSessionId = await this.fileManager.createSubtitleSession(subtitleFile.name, content);
+                        if (newSessionId) {
+                            this.stateManager.updateState({ currentMediaId: newSessionId });
+                            // For subtitle-only session, we need to clear audio state
+                            this.loadAudio(null, true, '', newSessionId);
+                            this.loadSubtitles(content);
+                        }
+                    }
+                }
             }
         };
 
@@ -563,14 +603,37 @@ class ReadcastPlayer {
         const updateFromAudio = () => {
             if (this.isScrubbingProgress) return;
             const duration = this.audioDuration || audioPlayer.duration;
-            this.uiManager.updateProgress(duration, audioPlayer.currentTime);
+            const currentTime = audioPlayer.currentTime;
+            this.uiManager.updateProgress(duration, currentTime);
+            
+            // Periodically save progress (every 5 seconds)
+            const now = Date.now();
+            if (now - this.lastProgressSave > 5000) {
+                const { currentMediaId } = this.stateManager.getState();
+                if (currentMediaId) {
+                     this.fileManager.updateProgress(currentMediaId, { 
+                         progress: currentTime,
+                         duration: duration,
+                         lastPlayedAt: now 
+                     });
+                }
+                this.lastProgressSave = now;
+            }
         };
 
         audioPlayer.addEventListener('loadedmetadata', () => {
             const metaDuration = Number.isFinite(audioPlayer.duration) ? audioPlayer.duration : 0;
             // Freeze duration to first reliable value to avoid drift on VBR files without headers
             this.audioDuration = metaDuration || this.audioDuration;
-            this.uiManager.updateProgress(this.audioDuration, 0);
+            
+            // Use current currentTime (which might have been restored from DB) instead of 0
+            this.uiManager.updateProgress(this.audioDuration, audioPlayer.currentTime);
+            
+            // Save duration once known
+             const { currentMediaId } = this.stateManager.getState();
+             if (currentMediaId && this.audioDuration > 0) {
+                 this.fileManager.updateProgress(currentMediaId, { duration: this.audioDuration });
+             }
         });
         audioPlayer.addEventListener('timeupdate', updateFromAudio);
 
@@ -683,7 +746,41 @@ class ReadcastPlayer {
         }, settleMs);
     }
 
-    loadAudio(file, hasHeader = true, coverArtUrl = '') {
+    loadAudio(file, hasHeader = true, coverArtUrl = '', id = null) {
+        // Handle Subtitle-Only session (file is null)
+        if (!file) {
+            this.stateManager.updateState({
+                audioLoaded: false,
+                audioFilename: '',
+                audioObjectUrl: '',
+                currentMediaId: id,
+                attemptedPlayWithoutAudio: false,
+                vbrHeaderMissing: false,
+                audioError: false,
+                coverArtUrl: ''
+            });
+            
+            // Clear MediaManager state
+            if (this.mediaManager) {
+                // Manually reset media manager if needed, or just pause
+                // Accessing private audioPlayer via uiManager is safer here or add a method to MediaManager
+                const player = this.uiManager.elements.audioPlayer;
+                if (player) {
+                    player.pause();
+                    player.removeAttribute('src'); // Unload
+                    player.load();
+                }
+            }
+
+            this.uiManager.updatePlayButtonIcon(true);
+            this.uiManager.updateFollowButtonState(false);
+            this.stopSubtitleSync();
+            this.isScrubbingProgress = false;
+            this.audioDuration = 0;
+            this.uiManager.updateProgress(0, 0);
+            return;
+        }
+
         const { loaded, filename, objectUrl } = this.mediaManager.loadAudio(file);
         if (loaded) {
             if (this.coverObjectUrl) {
@@ -694,6 +791,7 @@ class ReadcastPlayer {
                 audioLoaded: true,
                 audioFilename: filename,
                 audioObjectUrl: objectUrl,
+                currentMediaId: id, // Store DB ID
                 attemptedPlayWithoutAudio: false,
                 vbrHeaderMissing: !hasHeader,
                 audioError: false,
@@ -709,32 +807,25 @@ class ReadcastPlayer {
         }
     }
 
-    async loadSubtitles(file) {
+    async loadSubtitles(source) {
         const { subtitlesLoaded } = this.stateManager.getState();
         const hadSubtitles = subtitlesLoaded;
         this.stateManager.updateState({ subtitleStorageTooLarge: false, subtitleStorageFailed: false });
-        const canPersist = file && Number.isFinite(file.size) ? file.size <= MAX_SRT_STORAGE_BYTES : false;
+        
         try {
-            const content = await file.text();
+            let content = '';
+            if (typeof source === 'string') {
+                content = source;
+            } else if (source instanceof File) {
+                content = await source.text();
+            } else {
+                throw new Error('Invalid subtitle source');
+            }
+            
             const subtitles = parseSrt(content);
             this.mountSubtitles(subtitles);
-
-            if (!canPersist) {
-                this.stateManager.updateState({ subtitleStorageTooLarge: true });
-                clearStoredSubtitles();
-                return;
-            }
-
-            const persisted = saveStoredSubtitles({
-                v: 1,
-                filename: file && file.name ? file.name : '',
-                savedAt: Date.now(),
-                content
-            });
-            if (!persisted) {
-                this.stateManager.updateState({ subtitleStorageFailed: true });
-                clearStoredSubtitles();
-            }
+            
+            // Note: Persistence is now handled by FileManager/DB logic
         } catch (error) {
             console.error('Failed to load subtitles', error);
             if (!hadSubtitles) {
@@ -748,19 +839,6 @@ class ReadcastPlayer {
             } else {
                 this.stateManager.updateState({ subtitlesLoaded: false });
             }
-        }
-    }
-
-    restoreStoredSubtitles() {
-        const stored = loadStoredSubtitles();
-        if (!stored || typeof stored.content !== 'string') return;
-        try {
-            const subtitles = parseSrt(stored.content);
-            if (!Array.isArray(subtitles) || subtitles.length === 0) return;
-            this.mountSubtitles(subtitles);
-        } catch (error) {
-            console.warn('Failed to restore stored subtitles', error);
-            clearStoredSubtitles();
         }
     }
 

@@ -22,12 +22,13 @@ class UIManager {
       themeAction: document.getElementById('themeAction'),
       shortcutAction: document.getElementById('shortcutAction'),
       qaAction: document.getElementById('qaAction'),
+      settingsAction: document.getElementById('settingsAction'),
       zoomOutBtn: document.getElementById('zoomOutBtn'),
       zoomInBtn: document.getElementById('zoomInBtn'),
       zoomValueText: document.getElementById('zoomValueText'),
       zoomResetBtn: document.getElementById('zoomResetBtn'),
       zoomControl: document.querySelector('.zoom-direct'),
-      warningsList: document.querySelector('.warnings-list'),
+      warningsLists: document.querySelectorAll('.warnings-list'), // Select all lists
       emptyPanel: document.querySelector('.empty-panel'),
       floatingPanel: document.querySelector('.floating-panel'),
       followButton: document.getElementById('followCurrentBtn'),
@@ -73,8 +74,8 @@ class UIManager {
   }
 
   renderWarnings({ audioLoaded, attemptedPlayWithoutAudio, subtitlesLoaded, attemptedNavWithoutSubtitles, vbrHeaderMissing, fileError, audioError, subtitleStorageTooLarge, subtitleStorageFailed }, t) {
-    const list = this.elements.warningsList;
-    if (!list) return;
+    const lists = this.elements.warningsLists;
+    if (!lists || lists.length === 0) return;
 
     // Collect active warning keys
     const warnings = [];
@@ -109,36 +110,34 @@ class UIManager {
         warnings.push('audioError');
     }
 
-    // Clear list
-    list.innerHTML = '';
+    // Clear all lists first
+    lists.forEach(list => list.innerHTML = '');
 
     if (warnings.length === 0) return;
 
-    // Render banners
-    warnings.forEach(key => {
-        const banner = document.createElement('div');
-        banner.className = 'warning-banner panel-surface visible';
-        banner.setAttribute('role', 'alert');
-        
-        const icon = document.createElement('span');
-        icon.className = 'warning-icon mask-icon icon-error';
-        icon.setAttribute('aria-hidden', 'true');
-        
-        const text = document.createElement('span');
-        text.className = 'warning-text';
-        text.dataset.i18n = key;
-        text.textContent = t(key);
-        
-        banner.appendChild(icon);
-        banner.appendChild(text);
+    // Render banners to all lists
+    lists.forEach(list => {
+        warnings.forEach(key => {
+            const banner = document.createElement('div');
+            banner.className = 'warning-banner panel-surface visible';
+            banner.setAttribute('role', 'alert');
+            
+            const icon = document.createElement('span');
+            icon.className = 'warning-icon mask-icon icon-error';
+            icon.setAttribute('aria-hidden', 'true');
+            
+            const text = document.createElement('span');
+            text.className = 'warning-text';
+            text.dataset.i18n = key;
+            text.textContent = t(key);
+            
+            banner.appendChild(icon);
+            banner.appendChild(text);
 
-        list.appendChild(banner);
+            list.appendChild(banner);
+        });
     });
   }
-
-  // Deprecated/Legacy support removed.
-
-
 
   setDropTitleText(isEmpty, t) {
     const zones = [this.elements.dropZoneEmpty, this.elements.dropZoneFloating].filter(Boolean);

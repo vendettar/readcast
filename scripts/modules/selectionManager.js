@@ -7,9 +7,11 @@ const DICT_CACHE_MAX_ENTRIES = 500;
 const SINGLE_CLICK_LOOKUP_DELAY_MS = 240;
 
 export default class SelectionManager {
-    constructor(tCallback) {
+    constructor(tCallback, { onLookupModalChange } = {}) {
         this.t = tCallback;
+        this.onLookupModalChange = typeof onLookupModalChange === 'function' ? onLookupModalChange : null;
         this.contextMenu = null;
+        this.contextMenuBackdrop = null;
         this.contextCopyText = '';
         this.contextAnchorRect = null;
         this.isMouseDown = false;
@@ -24,6 +26,8 @@ export default class SelectionManager {
         this.wordHoverLockPointer = null;
         this.wordHoverMeasureCtx = null;
         this.wordHoverVerticalShiftCache = new Map();
+        this.wordHoverStickyPressed = false;
+        this.wordHoverLockedRects = null;
         this.lookupBackdrop = null;
         this.lookupPopover = null;
         this.lookupAbortController = null;
@@ -39,7 +43,6 @@ export default class SelectionManager {
         this.lookupTouchMoveHandler = null;
         this.clickLookupTimer = null;
         this.pendingClickLookup = null;
-        this.suppressedClickLookup = null;
         this.dictCache = new Map();
         this.loadDictCache();
         this.setupContextMenu();
@@ -69,9 +72,12 @@ export default class SelectionManager {
         this.wordHoverPending = null;
     }
 
-    hideWordHoverOverlay() {
+    hideWordHoverOverlay({ force = false } = {}) {
+        if (!force && this.isLookupModalOpen()) return;
         this.wordHoverLocked = false;
         this.wordHoverLastKey = '';
+        this.wordHoverStickyPressed = false;
+        this.wordHoverLockedRects = null;
         if (!this.wordHoverOverlayContainer) return;
         this.wordHoverOverlayContainer.setAttribute('hidden', 'true');
     }
@@ -86,6 +92,7 @@ export default class SelectionManager {
         }
 
         container.removeAttribute('hidden');
+        const pressedClass = pressed || this.wordHoverStickyPressed;
         for (let i = 0; i < rects.length; i += 1) {
             const rect = rects[i];
             let rectEl = this.wordHoverRectPool[i];
@@ -98,7 +105,7 @@ export default class SelectionManager {
                 container.appendChild(rectEl);
             }
 
-            rectEl.classList.toggle('is-pressed', pressed);
+            rectEl.classList.toggle('is-pressed', pressedClass);
             rectEl.style.left = `${rect.left}px`;
             rectEl.style.top = `${rect.top}px`;
             rectEl.style.width = `${rect.width}px`;
@@ -109,6 +116,16 @@ export default class SelectionManager {
         for (let i = rects.length; i < this.wordHoverRectPool.length; i += 1) {
             const rectEl = this.wordHoverRectPool[i];
             if (rectEl) rectEl.style.display = 'none';
+        }
+    }
+
+    applyStickyWordHoverPressed(enabled) {
+        this.wordHoverStickyPressed = Boolean(enabled);
+        if (!this.wordHoverOverlayContainer || this.wordHoverOverlayContainer.hasAttribute('hidden')) return;
+        for (let i = 0; i < this.wordHoverRectPool.length; i += 1) {
+            const rectEl = this.wordHoverRectPool[i];
+            if (!rectEl || rectEl.style.display === 'none') continue;
+            rectEl.classList.toggle('is-pressed', this.wordHoverStickyPressed);
         }
     }
 
@@ -147,27 +164,15 @@ export default class SelectionManager {
         return merged;
     }
 
-    markSuppressedClickLookup(event) {
-        if (!event) return;
-        const now = typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
-        this.suppressedClickLookup = { at: now, x: event.clientX, y: event.clientY };
-    }
-
-    consumeSuppressedClickLookup(event) {
-        const marker = this.suppressedClickLookup;
-        if (!marker || !event) return false;
-        const now = typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
-        if (now - marker.at > 1500) {
-            this.suppressedClickLookup = null;
-            return false;
-        }
-        const dx = Math.abs((event.clientX ?? 0) - (marker.x ?? 0));
-        const dy = Math.abs((event.clientY ?? 0) - (marker.y ?? 0));
-        if (dx <= 2 && dy <= 2) {
-            this.suppressedClickLookup = null;
-            return true;
-        }
-        return false;
+    getZoomScale() {
+        const rawInline = document.body ? document.body.style.getPropertyValue('--zoom-scale') : '';
+        const fromInline = rawInline ? Number.parseFloat(rawInline) : Number.NaN;
+        if (Number.isFinite(fromInline) && fromInline > 0) return fromInline;
+        if (!document.body || !window.getComputedStyle) return 1;
+        const raw = window.getComputedStyle(document.body).getPropertyValue('--zoom-scale');
+        const parsed = raw ? Number.parseFloat(raw) : Number.NaN;
+        if (!Number.isFinite(parsed) || parsed <= 0) return 1;
+        return parsed;
     }
 
     clearNativeSelection() {
@@ -205,6 +210,7 @@ export default class SelectionManager {
         if (hoverRects.length === 0) return false;
 
         this.wordHoverLocked = true;
+        this.wordHoverLockedRects = hoverRects;
         this.wordHoverLastKey = `${word.toLowerCase()}@locked`;
         this.renderWordHoverRects(hoverRects, { pressed });
         return true;
@@ -393,6 +399,21 @@ export default class SelectionManager {
     }
 
     setupContextMenu() {
+        const backdrop = document.createElement('div');
+        backdrop.className = 'context-menu-backdrop';
+        backdrop.setAttribute('hidden', 'true');
+        const swallowEvent = (event) => {
+            if (event.cancelable) event.preventDefault();
+            event.stopPropagation();
+        };
+        backdrop.addEventListener('mousedown', swallowEvent);
+        backdrop.addEventListener('click', (event) => {
+            this.hideContextMenu();
+            swallowEvent(event);
+        });
+        document.body.appendChild(backdrop);
+        this.contextMenuBackdrop = backdrop;
+
         const menu = document.createElement('div');
         menu.className = 'context-menu panel-surface';
         menu.setAttribute('hidden', 'true');
@@ -432,23 +453,16 @@ export default class SelectionManager {
         document.body.appendChild(menu);
         this.contextMenu = menu;
 
-        document.addEventListener(
-            'mousedown',
-            (event) => {
-                if (!this.contextMenu || this.contextMenu.hasAttribute('hidden')) return;
-                if (event.target && this.contextMenu.contains(event.target)) return;
+        window.addEventListener(
+            'scroll',
+            () => {
                 this.hideContextMenu();
-                this.markSuppressedClickLookup(event);
-                if (event.cancelable) event.preventDefault();
-                event.stopPropagation();
+                if (this.lookupPopover && !this.lookupPopover.hasAttribute('hidden')) return;
+                this.hideWordHoverOverlay();
+                this.clearDragOverlay();
             },
-            true
+            { passive: true }
         );
-        window.addEventListener('scroll', () => {
-            this.hideContextMenu();
-            this.hideWordHoverOverlay();
-            this.clearDragOverlay();
-        }, { passive: true });
         window.addEventListener('resize', () => {
             this.hideContextMenu();
             this.hideLookupPopover();
@@ -461,6 +475,15 @@ export default class SelectionManager {
         const backdrop = document.createElement('div');
         backdrop.className = 'lookup-backdrop';
         backdrop.setAttribute('hidden', 'true');
+        const swallowEvent = (event) => {
+            if (event.cancelable) event.preventDefault();
+            event.stopPropagation();
+        };
+        backdrop.addEventListener('mousedown', swallowEvent);
+        backdrop.addEventListener('click', (event) => {
+            this.hideLookupPopover();
+            swallowEvent(event);
+        });
         document.body.appendChild(backdrop);
         this.lookupBackdrop = backdrop;
 
@@ -480,21 +503,6 @@ export default class SelectionManager {
         this.lookupTitleEl = popover.querySelector('.lookup-title');
         this.lookupBodyEl = popover.querySelector('.lookup-body');
         if (this.lookupBodyEl) this.lookupBodyEl.tabIndex = 0;
-
-        document.addEventListener(
-            'mousedown',
-            (event) => {
-                if (!this.lookupPopover || this.lookupPopover.hasAttribute('hidden')) return;
-                if (event.target && this.lookupPopover.contains(event.target)) return;
-
-                this.hideLookupPopover();
-
-                this.markSuppressedClickLookup(event);
-                if (event.cancelable) event.preventDefault();
-                event.stopPropagation();
-            },
-            true
-        );
     }
 
     isLookupModalOpen() {
@@ -615,11 +623,6 @@ export default class SelectionManager {
 
     scheduleSingleClickLookup(event, textEl) {
         if (!event || !textEl) return;
-        if (this.consumeSuppressedClickLookup(event)) {
-            this.wordHoverLocked = false;
-            this.updateWordHoverOverlay(textEl, event.clientX, event.clientY);
-            return;
-        }
         if (this.contextMenu && !this.contextMenu.hasAttribute('hidden')) return;
         if (this.lookupPopover && !this.lookupPopover.hasAttribute('hidden')) return;
 
@@ -683,6 +686,7 @@ export default class SelectionManager {
 
             if (pending.hoverRects && pending.hoverRects.length > 0) {
                 this.wordHoverLocked = true;
+                this.wordHoverLockedRects = pending.hoverRects;
                 this.wordHoverLastKey = `${pending.word.toLowerCase()}@locked`;
                 this.renderWordHoverRects(pending.hoverRects, { pressed: true });
             }
@@ -713,10 +717,10 @@ export default class SelectionManager {
                   ? startNode.parentElement
                   : textEl;
         const shiftY = this.getWordHoverVerticalShift(fontSourceEl);
-        const paddingY = 2;
+        const paddingY = 2 * this.getZoomScale();
         this.overlayContainer.innerHTML = '';
         
-        for (let i = 0; i < mergedRects.length; i++) {
+        for (let i = 0; i < mergedRects.length; i += 1) {
             const rect = mergedRects[i];
             const div = document.createElement('div');
             div.className = 'readcast-overlay-rect';
@@ -788,6 +792,9 @@ export default class SelectionManager {
     showContextMenu(rect, { mode = 'word' } = {}) {
         if (!this.contextMenu) return;
         const menu = this.contextMenu;
+        if (this.contextMenuBackdrop) {
+            this.contextMenuBackdrop.removeAttribute('hidden');
+        }
         this.hideWordHoverOverlay();
         this.hideLookupPopover({ clearOverlay: mode === 'line' });
         this.contextAnchorRect = rect;
@@ -831,6 +838,9 @@ export default class SelectionManager {
     hideContextMenu({ clearOverlay = true } = {}) {
         if (!this.contextMenu) return;
         this.contextMenu.setAttribute('hidden', 'true');
+        if (this.contextMenuBackdrop) {
+            this.contextMenuBackdrop.setAttribute('hidden', 'true');
+        }
         this.contextCopyText = '';
         this.contextAnchorRect = null;
         this.clearNativeSelection();
@@ -843,10 +853,11 @@ export default class SelectionManager {
             this.lookupAbortController = null;
         }
         this.deactivateLookupModal();
+        this.applyStickyWordHoverPressed(false);
+        this.hideWordHoverOverlay({ force: true });
         if (!this.lookupPopover) return;
         this.lookupPopover.setAttribute('hidden', 'true');
         this.lookupAnchorRect = null;
-        this.wordHoverLocked = false;
         this.clearNativeSelection();
         if (clearOverlay) this.clearDragOverlay();
     }
@@ -1136,11 +1147,22 @@ export default class SelectionManager {
 
         this.lookupModalActive = true;
         this.lookupPreviousFocus = document.activeElement;
+        if (this.onLookupModalChange) this.onLookupModalChange(true);
 
         if (this.lookupBackdrop) {
             this.lookupBackdrop.removeAttribute('hidden');
         }
 
+        this.wordHoverLocked = true;
+        this.applyStickyWordHoverPressed(true);
+        if (
+            this.wordHoverLockedRects &&
+            this.wordHoverLockedRects.length > 0 &&
+            this.wordHoverOverlayContainer &&
+            this.wordHoverOverlayContainer.hasAttribute('hidden')
+        ) {
+            this.renderWordHoverRects(this.wordHoverLockedRects, { pressed: true });
+        }
         this.lockPageScroll();
         this.focusLookupPopover();
 
@@ -1205,6 +1227,7 @@ export default class SelectionManager {
     deactivateLookupModal() {
         if (!this.lookupModalActive) return;
         this.lookupModalActive = false;
+        if (this.onLookupModalChange) this.onLookupModalChange(false);
 
         if (this.lookupBackdrop) {
             this.lookupBackdrop.setAttribute('hidden', 'true');

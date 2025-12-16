@@ -29,7 +29,7 @@
                 </div>
             </div>
             <div class="action" id="themeAction">
-                <button class="action-button panel-surface" aria-haspopup="true" aria-expanded="false" aria-label="Theme">
+                <button class="action-button panel-surface" aria-haspopup="true" aria-expanded="false" aria-label="Theme" data-custom-click="true">
                     <span class="action-icon mask-icon icon-light-mode" id="themeToggleIcon" aria-hidden="true"></span>
                 </button>
                 <div class="action-dropdown panel-surface" id="themeDropdown">
@@ -48,7 +48,9 @@
 
     <div class="empty-panel">
         <div class="combined-card">
-            <div class="warning-container"></div>
+            <div class="warning-container">
+                <div class="warnings-list"></div>
+            </div>
             <p class="intro-lead" data-i18n="introLead">Listen to podcasts, read the text.</p>
             <div class="drop-wrapper drop-wrapper-empty">
             <div id="dropZoneEmpty" class="file-drop-zone file-drop-zone--empty">
@@ -164,6 +166,18 @@
                     <div class="qa-answer" data-i18n="qaAnswerVbr">
                         Some VBR .mp3 files without proper headers may seek less accurately; uploading an MP3 with a Xing/VBR header can improve jumping precision. You can add the header with: ffmpeg -i input.mp3 -c:a copy -write_xing 1 output.mp3
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="settings-fab action" id="settingsAction">
+            <button class="action-button panel-surface" aria-haspopup="true" aria-expanded="false" aria-label="Settings">
+                <span class="action-icon mask-icon icon-settings" aria-hidden="true"></span>
+            </button>
+            <div class="action-dropdown panel-surface" id="settingsDropdown">
+                <!-- Settings content will be rendered here -->
+                <div style="padding: 12px; font-size: 0.8125rem; color: var(--color-muted);">
+                    Settings coming soon...
                 </div>
             </div>
         </div>

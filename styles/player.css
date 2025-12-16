@@ -112,12 +112,7 @@ body {
     --sel-pin-total-h: calc(30px * var(--zoom-scale));
     --sel-pin-offset-x: calc(-6px * var(--zoom-scale));
     --sel-pin-offset-y-top: calc(-7px * var(--zoom-scale));
-    --sel-pin-offset-y-bottom: calc(-9px * var(--zoom-scale));
-    
-    /* Gradient Stops for drawing pin */
-    --sel-pin-grad-stop1: calc(4px * var(--zoom-scale)); /* (10 - 2)/2 */
-    --sel-pin-grad-stop2: calc(6px * var(--zoom-scale)); /* 4 + 2 */
-    --sel-pin-grad-stop-head: calc(5.5px * var(--zoom-scale)); /* 5 + 0.5 anti-alias buffer */
+    --sel-pin-offset-y-bottom: calc(-7px * var(--zoom-scale));
 
     /* Base */
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -137,25 +132,23 @@ body {
 .keycap, 
 .subtitle-line,
 .file-drop-zone,
-.progress-bar,
 .qa-answer,
 .theme-mode-btn,
 .canvas-swatch,
 .action-dropdown,
-.context-menu-item {
+.context-menu-item,
+#transcript-container {
     transition: var(--transition-theme);
+}
+
+/* Specific transition for progress bar to avoid thumb rendering issues */
+.progress-bar {
+    transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 /* === App Boot === */
 body.ready {
     opacity: 1;
-}
-
-/* === Theme Switch Guard === */
-.theme-switching *,
-.theme-switching *::before,
-.theme-switching *::after {
-    transition: none !important;
 }
 
 /* === Global Text Selection === */
@@ -181,6 +174,7 @@ body.ready {
 .readcast-overlay-rect {
     position: absolute;
     background-color: var(--selection-bg);
+    z-index: 0;
 }
 
 /* === Word Hover Overlay === */
@@ -218,7 +212,15 @@ body.ready {
     height: var(--sel-pin-total-h);
     z-index: -1;
     pointer-events: none;
-    background-repeat: no-repeat;
+    background-color: var(--color-highlight);
+    -webkit-mask-image: url('../assets/selection-pin.svg');
+    mask-image: url('../assets/selection-pin.svg');
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
+    -webkit-mask-position: center;
+    mask-position: center;
 }
 
 /* LEFT PIN: Head at Top, Stem Down */
@@ -226,9 +228,6 @@ body.ready {
 .readcast-overlay-rect.start::before {
     left: var(--sel-pin-offset-x);
     top: var(--sel-pin-offset-y-top);
-    background-image:
-        radial-gradient(circle at 50% var(--sel-pin-head-r), var(--color-highlight) var(--sel-pin-head-r), transparent var(--sel-pin-grad-stop-head)),
-        linear-gradient(to right, transparent var(--sel-pin-grad-stop1), var(--color-highlight) var(--sel-pin-grad-stop1), var(--color-highlight) var(--sel-pin-grad-stop2), transparent var(--sel-pin-grad-stop2));
 }
 
 /* RIGHT PIN: Head at Bottom, Stem Up */
@@ -236,14 +235,16 @@ body.ready {
 .readcast-overlay-rect.end::after {
     right: var(--sel-pin-offset-x);
     bottom: var(--sel-pin-offset-y-bottom);
-    background-image:
-        radial-gradient(circle at 50% calc(100% - var(--sel-pin-head-r)), var(--color-highlight) var(--sel-pin-head-r), transparent var(--sel-pin-grad-stop-head)),
-        linear-gradient(to right, transparent var(--sel-pin-grad-stop1), var(--color-highlight) var(--sel-pin-grad-stop1), var(--color-highlight) var(--sel-pin-grad-stop2), transparent var(--sel-pin-grad-stop2));
+    transform: scaleY(-1);
+    transform-origin: center;
 }
 
 /* === Theme Override (Dark) === */
 .theme-mode-dark {
     --bg-color: #0f1115;
+    --accent-color: #5295F8; /* Deeper blue for dark mode */
+    --ui-ring: rgba(82, 149, 248, 0.4);
+    --ui-dragover-bg-weak: rgba(82, 149, 248, 0.2);
     --color-text: #e6eaf1;
     --color-panel: rgba(18, 23, 34, 0.92);
     --color-muted: #a3afc7;
@@ -996,6 +997,11 @@ body.ready {
     -webkit-mask-image: url('../assets/question.svg');
 }
 
+.icon-settings {
+    mask-image: url('../assets/settings.svg');
+    -webkit-mask-image: url('../assets/settings.svg');
+}
+
 .icon-arrow-left {
     mask-image: url('../assets/arrow_left.svg');
     -webkit-mask-image: url('../assets/arrow_left.svg');
@@ -1175,6 +1181,7 @@ body.ready {
     color: var(--selection-color);
     border-radius: 0;
     position: relative;
+    z-index: 0;
     cursor: text;
 }
 
@@ -1235,6 +1242,17 @@ body.ready {
 }
 
 /* === Lookup Popover === */
+.context-menu-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: calc(var(--z-context-menu) - 1);
+    background: transparent;
+}
+
+.context-menu-backdrop[hidden] {
+    display: none;
+}
+
 .lookup-backdrop {
     position: fixed;
     inset: 0;
@@ -1621,7 +1639,18 @@ body.ready {
     cursor: pointer;
 }
 
-.progress-bar::-webkit-slider-thumb,
+.progress-bar::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: var(--space-14);
+    height: var(--space-14);
+    border-radius: var(--radius-circle);
+    background-color: var(--color-highlight);
+    border: 2px solid var(--color-panel);
+    box-shadow: var(--shadow-thumb);
+    margin-top: calc(-1 * var(--space-4));
+    transition: var(--transition-theme);
+}
+
 .progress-bar::-moz-range-thumb {
     width: var(--space-14);
     height: var(--space-14);
@@ -1629,23 +1658,16 @@ body.ready {
     background-color: var(--color-highlight);
     border: 2px solid var(--color-panel);
     box-shadow: var(--shadow-thumb);
-}
-
-.progress-bar::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    margin-top: calc(-1 * var(--space-4));
+    border: none; /* Firefox specific reset if needed, but border is defined above */
+    transition: var(--transition-theme);
 }
 
 .progress-bar::-webkit-slider-thumb:hover {
-    box-shadow: var(--shadow-thumb-hover); /* Add a subtle glow */
-}
-
-.progress-bar:hover::-webkit-slider-runnable-track {
-    background-color: var(--color-surface-hover); /* Make track slightly darker on hover */
+    box-shadow: var(--shadow-thumb-hover);
 }
 
 .progress-bar::-moz-range-thumb:hover {
-    box-shadow: var(--shadow-thumb-hover); /* Add a subtle glow */
+    box-shadow: var(--shadow-thumb-hover);
 }
 
 .progress-bar:disabled {

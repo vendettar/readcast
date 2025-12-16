@@ -54,6 +54,7 @@ function attachActionHandlers(actionElement, allActions) {
     });
 
     trigger.addEventListener('click', (event) => {
+        if (trigger.dataset.customClick) return; // Allow custom handling
         event.preventDefault();
         if (actionElement.classList.contains('open')) {
             scheduleClose();
