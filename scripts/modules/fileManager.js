@@ -1,26 +1,25 @@
 import { DB } from './db.js';
 
 class FileManager {
-  constructor({ onAudioLoad, onSubtitleLoad }) {
+  constructor({ onAudioLoad } = {}) {
     this.onAudioLoad = onAudioLoad;
-    this.onSubtitleLoad = onSubtitleLoad;
   }
 
   generateId() {
-      if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-          return crypto.randomUUID();
-      }
-      return Date.now().toString(36) + Math.random().toString(36).slice(2);
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    return Date.now().toString(36) + Math.random().toString(36).slice(2);
   }
 
   // Update session progress (sessionId is now the key)
   async updateProgress(sessionId, data) {
-      if (!sessionId) return;
-      try {
-          await DB.updateSession(sessionId, data);
-      } catch (err) {
-          console.warn('Failed to update session progress', err);
-      }
+    if (!sessionId) return;
+    try {
+      await DB.updateSession(sessionId, data);
+    } catch (err) {
+      console.warn('Failed to update session progress', err);
+    }
   }
 
   // --- File Processing Helpers ---
@@ -29,10 +28,12 @@ class FileManager {
     try {
       const headerBuffer = await file.slice(0, 10).arrayBuffer();
       const header = new Uint8Array(headerBuffer);
-      if (header[0] !== 0x49 || header[1] !== 0x44 || header[2] !== 0x33) return null;
+      if (header[0] !== 0x49 || header[1] !== 0x44 || header[2] !== 0x33)
+        return null;
 
-      const version = header[3]; 
-      const tagSize = (header[6] << 21) | (header[7] << 14) | (header[8] << 7) | header[9];
+      const version = header[3];
+      const tagSize =
+        (header[6] << 21) | (header[7] << 14) | (header[8] << 7) | header[9];
       const totalSize = tagSize + 10;
       const tagArrayBuffer = await file.slice(0, totalSize).arrayBuffer();
       const tagBuffer = new Uint8Array(tagArrayBuffer);
@@ -41,11 +42,17 @@ class FileManager {
       let offset = 10;
       const decoderLatin1 = new TextDecoder('iso-8859-1');
       while (offset + 10 <= tagBuffer.length) {
-        const frameId = decoderLatin1.decode(tagBuffer.slice(offset, offset + 4));
-        const rawSize = view.getUint32(offset + 4, false); 
-        const frameSize = version === 4
-          ? ((rawSize & 0x7f000000) >> 3) | ((rawSize & 0x007f0000) >> 2) | ((rawSize & 0x00007f00) >> 1) | (rawSize & 0x0000007f)
-          : rawSize;
+        const frameId = decoderLatin1.decode(
+          tagBuffer.slice(offset, offset + 4)
+        );
+        const rawSize = view.getUint32(offset + 4, false);
+        const frameSize =
+          version === 4
+            ? ((rawSize & 0x7f000000) >> 3) |
+              ((rawSize & 0x007f0000) >> 2) |
+              ((rawSize & 0x00007f00) >> 1) |
+              (rawSize & 0x0000007f)
+            : rawSize;
         const frameStart = offset + 10;
         const frameEnd = frameStart + frameSize;
         if (frameEnd > tagBuffer.length || frameSize <= 0) break;
@@ -54,8 +61,11 @@ class FileManager {
           const encoding = tagBuffer[frameStart];
           let cursor = frameStart + 1;
           const mimeEnd = tagBuffer.indexOf(0, cursor);
-          const mime = mimeEnd !== -1 ? decoderLatin1.decode(tagBuffer.slice(cursor, mimeEnd)) : 'image/jpeg';
-          cursor = mimeEnd !== -1 ? mimeEnd + 1 : cursor; 
+          const mime =
+            mimeEnd !== -1
+              ? decoderLatin1.decode(tagBuffer.slice(cursor, mimeEnd))
+              : 'image/jpeg';
+          cursor = mimeEnd !== -1 ? mimeEnd + 1 : cursor;
           cursor += 1;
 
           const findTerminator = () => {
@@ -69,7 +79,10 @@ class FileManager {
           };
 
           const descEnd = findTerminator();
-          cursor = descEnd !== -1 ? descEnd + (encoding === 1 || encoding === 2 ? 2 : 1) : cursor;
+          cursor =
+            descEnd !== -1
+              ? descEnd + (encoding === 1 || encoding === 2 ? 2 : 1)
+              : cursor;
 
           if (cursor >= frameEnd) return null;
 
@@ -90,24 +103,32 @@ class FileManager {
       const headerSlice = file.slice(0, 10);
       const headerBuffer = await headerSlice.arrayBuffer();
       const headerBytes = new Uint8Array(headerBuffer);
-      
+
       let startOffset = 0;
-      if (headerBytes[0] === 0x49 && headerBytes[1] === 0x44 && headerBytes[2] === 0x33) {
-          const s1 = headerBytes[6];
-          const s2 = headerBytes[7];
-          const s3 = headerBytes[8];
-          const s4 = headerBytes[9];
-          const tagSize = (s1 << 21) | (s2 << 14) | (s3 << 7) | s4;
-          startOffset = tagSize + 10;
+      if (
+        headerBytes[0] === 0x49 &&
+        headerBytes[1] === 0x44 &&
+        headerBytes[2] === 0x33
+      ) {
+        const s1 = headerBytes[6];
+        const s2 = headerBytes[7];
+        const s3 = headerBytes[8];
+        const s4 = headerBytes[9];
+        const tagSize = (s1 << 21) | (s2 << 14) | (s3 << 7) | s4;
+        startOffset = tagSize + 10;
       }
 
-      const searchLength = 16 * 1024; 
+      const searchLength = 16 * 1024;
       const slice = file.slice(startOffset, startOffset + searchLength);
       const buffer = await slice.arrayBuffer();
       const bytes = new Uint8Array(buffer);
       const text = new TextDecoder('iso-8859-1').decode(bytes);
-      
-      if (text.includes('Xing') || text.includes('Info') || text.includes('VBRI')) {
+
+      if (
+        text.includes('Xing') ||
+        text.includes('Info') ||
+        text.includes('VBRI')
+      ) {
         return true;
       }
       return false;
@@ -118,47 +139,56 @@ class FileManager {
   }
 
   async validateAudioFile(file) {
-      try {
-          const buffer = await file.slice(0, 12).arrayBuffer();
-          const bytes = new Uint8Array(buffer);
-          // ID3
-          if (bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33) return 'mp3';
-          // MP3 Sync
-          if (bytes[0] === 0xFF && (bytes[1] & 0xE0) === 0xE0) return 'mp3';
-          // ftyp (MP4)
-          if (bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) return 'mp4';
-          return null;
-      } catch {
-          return null;
-      }
+    try {
+      const buffer = await file.slice(0, 12).arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      // ID3
+      if (bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33)
+        return 'mp3';
+      // MP3 Sync
+      if (bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0) return 'mp3';
+      // ftyp (MP4)
+      if (
+        bytes[4] === 0x66 &&
+        bytes[5] === 0x74 &&
+        bytes[6] === 0x79 &&
+        bytes[7] === 0x70
+      )
+        return 'mp4';
+      return null;
+    } catch {
+      return null;
+    }
   }
 
   async checkCapacity(incomingFileSize) {
-      if (!navigator.storage || !navigator.storage.estimate) return true;
+    if (!navigator.storage || !navigator.storage.estimate) return true;
 
-      try {
-          const { usage, quota } = await navigator.storage.estimate();
-          
-          const USER_CAP = 1 * 1024 * 1024 * 1024; // 1GB
-          const HARD_CAP = 2 * 1024 * 1024 * 1024; // 2GB
-          const dynamicCap = quota * 0.2; // Conservative 20% of browser quota
-          
-          const finalCap = Math.min(USER_CAP, HARD_CAP, dynamicCap);
-          
-          if (usage + incomingFileSize > finalCap) {
-              console.warn(`Storage limit reached. Usage: ${usage}, Incoming: ${incomingFileSize}, Cap: ${finalCap}`);
-              return false;
-          }
-          return true;
-      } catch (e) {
-          console.warn('Failed to check capacity', e);
-          return true; // Fail open
+    try {
+      const { usage, quota } = await navigator.storage.estimate();
+
+      const USER_CAP = 1 * 1024 * 1024 * 1024; // 1GB
+      const HARD_CAP = 2 * 1024 * 1024 * 1024; // 2GB
+      const dynamicCap = quota * 0.2; // Conservative 20% of browser quota
+
+      const finalCap = Math.min(USER_CAP, HARD_CAP, dynamicCap);
+
+      if (usage + incomingFileSize > finalCap) {
+        console.warn(
+          `Storage limit reached. Usage: ${usage}, Incoming: ${incomingFileSize}, Cap: ${finalCap}`
+        );
+        return false;
       }
+      return true;
+    } catch (e) {
+      console.warn('Failed to check capacity', e);
+      return true; // Fail open
+    }
   }
 
   // --- Main Logic ---
 
-  async handleFiles(fileList) {
+  async handleFiles(fileList, { loadToUi = true } = {}) {
     const files = Array.from(fileList || []);
     let audioFile = null;
     let subtitleFile = null;
@@ -167,178 +197,205 @@ class FileManager {
     const MAX_AUDIO_SIZE = 300 * 1024 * 1024; // 300MB
 
     for (const file of files) {
-        const name = (file.name || '').toLowerCase();
-        const type = (file.type || '').toLowerCase();
-        
-        const isSrt = name.endsWith('.srt') || type.includes('application/x-subrip');
-        const isPotentialAudio = name.endsWith('.mp3') || name.endsWith('.mp4') || name.endsWith('.m4a') || 
-                                 type.includes('audio/') || type.includes('video/mp4');
+      const name = (file.name || '').toLowerCase();
+      const type = (file.type || '').toLowerCase();
 
-        if (isSrt) {
-            subtitleFile = file;
-        } else if (isPotentialAudio) {
-            const format = await this.validateAudioFile(file);
-            if (format) {
-                if (file.size > MAX_AUDIO_SIZE) {
-                    invalidFiles.push(file);
-                    if (!errorType) errorType = 'audioTooLarge';
-                } else {
-                    audioFile = file;
-                }
-            } else {
-                invalidFiles.push(file);
-            }
-        } else {
+      const isSrt =
+        name.endsWith('.srt') || type.includes('application/x-subrip');
+      const isPotentialAudio =
+        name.endsWith('.mp3') ||
+        name.endsWith('.mp4') ||
+        name.endsWith('.m4a') ||
+        type.includes('audio/') ||
+        type.includes('video/mp4');
+
+      if (isSrt) {
+        subtitleFile = file;
+      } else if (isPotentialAudio) {
+        const format = await this.validateAudioFile(file);
+        if (format) {
+          if (file.size > MAX_AUDIO_SIZE) {
             invalidFiles.push(file);
+            if (!errorType) errorType = 'audioTooLarge';
+          } else {
+            audioFile = file;
+          }
+        } else {
+          invalidFiles.push(file);
         }
+      } else {
+        invalidFiles.push(file);
+      }
     }
 
     if (!errorType && invalidFiles.length > 0) {
-        errorType = 'invalidFiles';
+      errorType = 'invalidFiles';
     }
 
     // Capacity Check
     if (audioFile) {
-        const hasSpace = await this.checkCapacity(audioFile.size);
-        if (!hasSpace) {
-            return { audioFile: null, subtitleFile: null, invalidFiles: [], errorType: 'storageLimitReached' };
-        }
+      const hasSpace = await this.checkCapacity(audioFile.size);
+      if (!hasSpace) {
+        return {
+          audioFile: null,
+          subtitleFile: null,
+          invalidFiles: [],
+          errorType: 'storageLimitReached',
+        };
+      }
     }
 
     let sessionId = null;
+    let createdSession = null;
 
     // SCENARIO: Audio + Maybe Subtitle
     if (audioFile) {
-        sessionId = this.generateId();
-        const audioId = this.generateId();
-        let subtitleId = null;
-        let subtitleContent = null;
+      sessionId = this.generateId();
+      const audioId = this.generateId();
+      let subtitleId = null;
+      let subtitleContent = null;
 
-        // 1. Prepare Audio Data
-        let hasHeader = true;
-        let coverBlob = null;
+      // 1. Prepare Audio Data
+      let hasHeader = true;
+      let coverBlob = null;
+      try {
+        [hasHeader, coverBlob] = await Promise.all([
+          this.checkMp3Header(audioFile),
+          this.extractCoverArt(audioFile),
+        ]);
+      } catch (e) {
+        console.warn('Metadata extraction failed', e);
+      }
+
+      // 2. Prepare Subtitle Data (if present)
+      if (subtitleFile) {
         try {
-            [hasHeader, coverBlob] = await Promise.all([
-                this.checkMp3Header(audioFile),
-                this.extractCoverArt(audioFile)
-            ]);
+          subtitleContent = await subtitleFile.text();
+          subtitleId = this.generateId();
+          await DB.addSubtitle(subtitleId, subtitleContent, {
+            name: subtitleFile.name,
+          });
         } catch (e) {
-            console.warn('Metadata extraction failed', e);
+          console.warn('Subtitle read failed', e);
         }
+      }
 
-        // 2. Prepare Subtitle Data (if present)
-        if (subtitleFile) {
-            try {
-                subtitleContent = await subtitleFile.text();
-                subtitleId = this.generateId();
-                await DB.addSubtitle(subtitleId, subtitleContent, { name: subtitleFile.name });
-            } catch (e) {
-                console.warn('Subtitle read failed', e);
-            }
-        }
+      // 3. Save Audio
+      await DB.addAudio(audioId, audioFile, {
+        hasHeader,
+        cover: coverBlob,
+        name: audioFile.name,
+      });
 
-        // 3. Save Audio
-        await DB.addAudio(audioId, audioFile, { 
-            hasHeader, 
-            cover: coverBlob, 
-            name: audioFile.name 
-        });
+      // 4. Create Session
+      createdSession = {
+        id: sessionId,
+        title: audioFile.name,
+        audioId,
+        subtitleId,
+        audioName: audioFile.name,
+        subtitleName: subtitleFile ? subtitleFile.name : null,
+        duration: 0,
+        progress: 0,
+      };
 
-        // 4. Create Session
-        await DB.createSession(sessionId, {
-            title: audioFile.name,
-            audioId,
-            subtitleId,
-            audioName: audioFile.name,
-            subtitleName: subtitleFile ? subtitleFile.name : null,
-            duration: 0,
-            progress: 0
-        });
+      await DB.createSession(sessionId, createdSession);
 
-        // 5. Load
+      // 5. Load (optional)
+      if (loadToUi && this.onAudioLoad) {
         const coverUrl = coverBlob ? URL.createObjectURL(coverBlob) : '';
         this.onAudioLoad(audioFile, hasHeader, coverUrl, sessionId); // Pass SessionID!
-        if (subtitleContent) {
-            // Let app handle subtitle loading via returned object or direct call?
-            // Since app.js handles loadSubtitles(source), let's return it.
-        }
-    } 
+      }
+    }
     // SCENARIO: Only Subtitle (New Session)
-    // NOTE: app.js will handle "attach to existing session" logic. 
+    // NOTE: app.js will handle "attach to existing session" logic.
     // If app.js decides to create a NEW session for this subtitle, it calls createSubtitleSession.
     // So here we just return the file.
 
-    return { audioFile, subtitleFile, invalidFiles, errorType, sessionId };
+    return {
+      audioFile,
+      subtitleFile,
+      invalidFiles,
+      errorType,
+      sessionId,
+      createdSession,
+    };
   }
 
   // Create a session for a standalone subtitle
   async createSubtitleSession(filename, content) {
-      const sessionId = this.generateId();
-      const subtitleId = this.generateId();
-      
-      try {
-          await DB.addSubtitle(subtitleId, content, { name: filename });
-          await DB.createSession(sessionId, {
-              title: filename,
-              audioId: null,
-              subtitleId: subtitleId,
-              subtitleName: filename
-          });
-          return sessionId;
-      } catch (e) {
-          console.warn('Failed to create subtitle session', e);
-          return null;
-      }
+    const sessionId = this.generateId();
+    const subtitleId = this.generateId();
+
+    try {
+      await DB.addSubtitle(subtitleId, content, { name: filename });
+      await DB.createSession(sessionId, {
+        title: filename,
+        audioId: null,
+        subtitleId: subtitleId,
+        subtitleName: filename,
+      });
+      return sessionId;
+    } catch (e) {
+      console.warn('Failed to create subtitle session', e);
+      return null;
+    }
   }
-  
+
   // Attach a subtitle to an existing session
   async attachSubtitleToSession(sessionId, filename, content) {
-      if (!sessionId) return;
-      const subtitleId = this.generateId();
-      try {
-          await DB.addSubtitle(subtitleId, content, { name: filename });
-          await DB.updateSession(sessionId, {
-              subtitleId,
-              subtitleName: filename
-          });
-      } catch (e) {
-          console.warn('Failed to attach subtitle', e);
-      }
+    if (!sessionId) return;
+    const subtitleId = this.generateId();
+    try {
+      await DB.addSubtitle(subtitleId, content, { name: filename });
+      await DB.updateSession(sessionId, {
+        subtitleId,
+        subtitleName: filename,
+      });
+    } catch (e) {
+      console.warn('Failed to attach subtitle', e);
+    }
   }
 
   async loadRecent() {
-      try {
-          const sessions = await DB.getAllSessions();
-          if (sessions && sessions.length > 0) {
-              const session = sessions[0];
-              const result = { session }; // Container for return data
+    try {
+      const sessions = await DB.getAllSessions();
+      if (sessions && sessions.length > 0) {
+        const session = sessions[0];
+        const result = { session }; // Container for return data
 
-              // Load Audio
-              if (session.audioId) {
-                  const audioData = await DB.getAudio(session.audioId);
-                  if (audioData) {
-                      const file = new File([audioData.blob], audioData.name, { type: audioData.type });
-                      const coverUrl = audioData.cover ? URL.createObjectURL(audioData.cover) : '';
-                      
-                      this.onAudioLoad(file, audioData.hasHeader, coverUrl, session.id);
-                      result.audioLoaded = true;
-                  }
-              }
+        // Load Audio
+        if (session.audioId) {
+          const audioData = await DB.getAudio(session.audioId);
+          if (audioData) {
+            const file = new File([audioData.blob], audioData.name, {
+              type: audioData.type,
+            });
+            const coverUrl = audioData.cover
+              ? URL.createObjectURL(audioData.cover)
+              : '';
 
-              // Load Subtitle
-              if (session.subtitleId) {
-                  const subData = await DB.getSubtitle(session.subtitleId);
-                  if (subData) {
-                      result.subtitleContent = subData.content;
-                  }
-              }
-              
-              return result;
+            if (this.onAudioLoad) {
+              this.onAudioLoad(file, audioData.hasHeader, coverUrl, session.id);
+            }
+            result.audioLoaded = true;
           }
-      } catch (err) {
-          console.error('Failed to load recent session:', err);
+        }
+
+        // Load Subtitle
+        if (session.subtitleId) {
+          const subData = await DB.getSubtitle(session.subtitleId);
+          if (subData) {
+            result.subtitleContent = subData.content;
+          }
+        }
+
+        return result;
       }
-      return null;
+    } catch (err) {
+      console.error('Failed to load recent session:', err);
+    }
+    return null;
   }
 }
 

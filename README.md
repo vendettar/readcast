@@ -31,6 +31,19 @@ npm start
 - All processing happens in the browser; files are not uploaded anywhere.
 - Some VBR `.mp3` files without proper headers may seek less accurately. Re-saving the file with a Xing/VBR header can improve jumping precision.
 
+## Gallery cache notes
+- Apple Top Podcasts is fetched via `allorigins` and cached in `localStorage` with a timestamp.
+- On load, cached data is used immediately; if older than 24 hours, a refresh is attempted and the cache is updated on success.
+- If the refresh fails (e.g. proxy 500), the UI continues using the cached data.
+- Cache entries older than 72 hours are only replaced/cleaned up after a successful refresh, so the UI can keep showing stale data during outages.
+- After any successful refresh, the app also scans `localStorage` and deletes other Apple chart/lookup cache keys older than 72 hours.
+
+## CORS proxy configuration
+- The Gallery uses `https://api.allorigins.win` as a public CORS proxy for Apple charts and (when needed) RSS feeds.
+- You can provide your own allorigins-compatible proxy via `.env`:
+  - `READCAST_CORS_PROXY_URL` – your proxy URL (recommended: `https://example.com/?url=` or template `...?url={url}`) that returns the raw upstream body.
+  - `READCAST_CORS_PROXY_PRIMARY` – if `true`, try your proxy first; otherwise use it as a fallback.
+
 ## Credits
 - Dictionary lookups are powered by the Free Dictionary API (`dictionaryapi.dev`). Thanks to meetDeveloper: https://github.com/meetDeveloper/freeDictionaryAPI
 

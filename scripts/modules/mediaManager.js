@@ -5,14 +5,14 @@ class MediaManager {
   constructor(onPlay, onPause, onSeek, onError) {
     this.audioPlayer = uiManager.elements.audioPlayer;
     this.onError = onError;
-    
+
     // Bind methods to preserve 'this' context for event listeners
     this.handlePlayEvent = onPlay;
     this.handlePauseEvent = onPause;
     this.handleSeekEvent = onSeek;
     this.handleErrorEvent = (e) => {
-        console.error('Audio player error:', e);
-        if (this.onError) this.onError(e);
+      console.error('Audio player error:', e);
+      if (this.onError) this.onError(e);
     };
 
     if (this.audioPlayer) {
@@ -26,14 +26,14 @@ class MediaManager {
 
   destroy() {
     if (this.audioPlayer) {
-        this.audioPlayer.removeEventListener('play', this.handlePlayEvent);
-        this.audioPlayer.removeEventListener('pause', this.handlePauseEvent);
-        this.audioPlayer.removeEventListener('seeked', this.handleSeekEvent);
-        this.audioPlayer.removeEventListener('error', this.handleErrorEvent);
+      this.audioPlayer.removeEventListener('play', this.handlePlayEvent);
+      this.audioPlayer.removeEventListener('pause', this.handlePauseEvent);
+      this.audioPlayer.removeEventListener('seeked', this.handleSeekEvent);
+      this.audioPlayer.removeEventListener('error', this.handleErrorEvent);
     }
     if (this.audioObjectUrl) {
-        URL.revokeObjectURL(this.audioObjectUrl);
-        this.audioObjectUrl = null;
+      URL.revokeObjectURL(this.audioObjectUrl);
+      this.audioObjectUrl = null;
     }
   }
 
@@ -45,12 +45,37 @@ class MediaManager {
     this.audioPlayer.currentTime = 0;
 
     if (this.audioObjectUrl) {
-        URL.revokeObjectURL(this.audioObjectUrl);
+      URL.revokeObjectURL(this.audioObjectUrl);
     }
 
     this.audioObjectUrl = URL.createObjectURL(file);
     this.audioPlayer.src = this.audioObjectUrl;
-    return { loaded: true, filename: file.name, objectUrl: this.audioObjectUrl };
+    return {
+      loaded: true,
+      filename: file.name,
+      objectUrl: this.audioObjectUrl,
+    };
+  }
+
+  loadAudioUrl(url) {
+    if (!this.audioPlayer)
+      return { loaded: false, filename: '', objectUrl: '' };
+    const src = (url || '').trim();
+    if (!src) return { loaded: false, filename: '', objectUrl: '' };
+
+    this.audioPlayer.pause();
+    this.audioPlayer.currentTime = 0;
+
+    if (this.audioObjectUrl) {
+      if (this.audioObjectUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(this.audioObjectUrl);
+      }
+      this.audioObjectUrl = null;
+    }
+
+    this.audioObjectUrl = src;
+    this.audioPlayer.src = src;
+    return { loaded: true, filename: src, objectUrl: src };
   }
 
   jumpToTime(time) {
@@ -58,21 +83,21 @@ class MediaManager {
     const shouldResume = !this.audioPlayer.paused;
     this.audioPlayer.currentTime = time;
     if (shouldResume) {
-        const playPromise = this.audioPlayer.play();
-        this.handlePlaybackPromise(playPromise);
+      const playPromise = this.audioPlayer.play();
+      this.handlePlaybackPromise(playPromise);
     }
   }
 
   togglePlayPause() {
     if (!this.audioPlayer) return;
     if (this.audioPlayer.paused) {
-        const playPromise = this.audioPlayer.play();
-        this.handlePlaybackPromise(playPromise);
+      const playPromise = this.audioPlayer.play();
+      this.handlePlaybackPromise(playPromise);
     } else {
-        this.audioPlayer.pause();
+      this.audioPlayer.pause();
     }
   }
-  
+
   getCurrentTime() {
     return this.audioPlayer ? this.audioPlayer.currentTime : 0;
   }
@@ -84,11 +109,11 @@ class MediaManager {
   handlePlaybackPromise(playPromise) {
     if (!playPromise || typeof playPromise.catch !== 'function') return;
     playPromise.catch((error) => {
-        if (error && error.name === 'AbortError') {
-            return;
-        }
-        console.warn('Audio playback failed', error);
-        if (this.onError) this.onError(error);
+      if (error && error.name === 'AbortError') {
+        return;
+      }
+      console.warn('Audio playback failed', error);
+      if (this.onError) this.onError(error);
     });
   }
 }

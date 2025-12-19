@@ -20,7 +20,6 @@ export const DB = {
 
             request.onupgradeneeded = (event) => {
                 const db = event.target.result;
-                const transaction = event.target.transaction;
 
                 // Cleanup old stores if they exist (Clean slate strategy)
                 const oldStores = ['files', 'library'];

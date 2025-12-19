@@ -43,6 +43,13 @@ class UIManager {
     this.elements.playIcon = this.elements.btnPlay ? this.elements.btnPlay.querySelector('.play-icon') : null;
   }
 
+  updateDropZoneAvailability({ audioLoaded, currentMediaId }) {
+    const isRemoteAudio = Boolean(audioLoaded) && !currentMediaId;
+    if (this.elements.dropZoneFloating) {
+      this.elements.dropZoneFloating.toggleAttribute('hidden', isRemoteAudio);
+    }
+  }
+
   // UI manipulation methods will be added here
   togglePanels(isEmpty) {
     const { emptyPanel, floatingPanel } = this.elements;

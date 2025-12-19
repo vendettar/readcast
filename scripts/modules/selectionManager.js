@@ -1,3 +1,6 @@
+import { stopSet } from './stopwords_en.js';
+import { lockBodyScroll, unlockBodyScroll } from './bodyScrollLock.js';
+
 const FREE_DICT_API_BASE_URL = 'https://api.dictionaryapi.dev/api/v2/entries/en/';
 const LOOKUP_WORD_PATTERN = /^[A-Za-z][A-Za-z0-9]*(?:[’'-][A-Za-z0-9]+)*$/;
 const SUBTITLE_WORD_PATTERN = /[A-Za-z][A-Za-z0-9]*(?:[’'-][A-Za-z0-9]+)*/g;
@@ -569,7 +572,7 @@ export default class SelectionManager {
             this.isMouseDown = false;
             if (this.rafId) cancelAnimationFrame(this.rafId);
             this.wordHoverLockPointer = null;
-            
+
             // Wait for native selection to finalize
             setTimeout(() => {
                 let selectionHandled = false;
@@ -587,14 +590,14 @@ export default class SelectionManager {
                     const selectedText = selection.toString().trim();
                     if (selectionInText && selectedText) {
                         this.contextCopyText = selectedText;
-                        
+
                         // Use the first line's merged rect for positioning
                         const mergedRects = this.mergeClientRectsByLine(range.getClientRects());
                         const rect = mergedRects.length > 0 ? mergedRects[0] : range.getBoundingClientRect();
-                        
+
                         // Persist the visual highlight
                         this.convertSelectionToHighlight(textEl);
-                        
+
                         // Show menu near the selection
                         this.showContextMenu(rect);
                         selectionHandled = true;
@@ -604,7 +607,7 @@ export default class SelectionManager {
                 if (!selectionHandled && event.button === 0) {
                     this.scheduleSingleClickLookup(event, textEl);
                 }
-                
+
                 document.body.classList.remove('state-selecting'); // Remove class only after transition is complete
             }, 0);
         } else if (event.type === 'contextmenu') {
@@ -719,7 +722,7 @@ export default class SelectionManager {
         const shiftY = this.getWordHoverVerticalShift(fontSourceEl);
         const paddingY = 2 * this.getZoomScale();
         this.overlayContainer.innerHTML = '';
-        
+
         for (let i = 0; i < mergedRects.length; i += 1) {
             const rect = mergedRects[i];
             const div = document.createElement('div');
@@ -754,7 +757,7 @@ export default class SelectionManager {
                 !selection.isCollapsed &&
                 selection.rangeCount > 0 &&
                 textEl.contains(selection.getRangeAt(0).commonAncestorContainer);
-            
+
             if (!hasExistingSelection) {
                 this.selectWordAtPoint(textEl, event.clientX, event.clientY);
                 selection = window.getSelection ? window.getSelection() : null;
@@ -766,7 +769,7 @@ export default class SelectionManager {
             }
             this.contextCopyText = textToCopy;
             this.convertSelectionToHighlight(textEl);
-            
+
             if (!selection || selection.isCollapsed || selection.rangeCount === 0) {
                 this.hideContextMenu();
                 return;
@@ -775,21 +778,22 @@ export default class SelectionManager {
             const range = selection.getRangeAt(0);
             const mergedRects = this.mergeClientRectsByLine(range.getClientRects());
             const rect = mergedRects.length > 0 ? mergedRects[0] : range.getBoundingClientRect();
-            
+
             this.showContextMenu(rect, { mode: 'word' });
         } else {
             const fullText = textEl.textContent ? textEl.textContent.trim() : '';
             if (!fullText) return;
             this.contextCopyText = fullText;
-            
+
             const rects = textEl.getClientRects();
             const rect = rects.length > 0 ? rects[0] : textEl.getBoundingClientRect();
-            
+
             this.showContextMenu(rect, { mode: 'line' });
         }
     }
 
     showContextMenu(rect, { mode = 'word' } = {}) {
+        this.isMouseDown = false;
         if (!this.contextMenu) return;
         const menu = this.contextMenu;
         if (this.contextMenuBackdrop) {
@@ -798,7 +802,7 @@ export default class SelectionManager {
         this.hideWordHoverOverlay();
         this.hideLookupPopover({ clearOverlay: mode === 'line' });
         this.contextAnchorRect = rect;
-        
+
         // Temporarily show (invisible) to calculate dimensions
         menu.style.visibility = 'hidden';
         menu.removeAttribute('hidden');
@@ -821,21 +825,22 @@ export default class SelectionManager {
         // Calculate position based on actual dimensions
         const width = menu.offsetWidth;
         const height = menu.offsetHeight;
-        
+
         let left = rect.left + (rect.width / 2) - (width / 2);
-        
+
         // Prevent overflowing screen edges
         if (left < 6) left = 6;
         if (left + width > window.innerWidth - 6) left = window.innerWidth - width - 6;
 
         menu.style.top = `${rect.top - height - 6}px`;
         menu.style.left = `${left}px`;
-        
+
         // Make visible
         menu.style.visibility = '';
     }
 
     hideContextMenu({ clearOverlay = true } = {}) {
+        this.isMouseDown = false;
         if (!this.contextMenu) return;
         this.contextMenu.setAttribute('hidden', 'true');
         if (this.contextMenuBackdrop) {
@@ -974,7 +979,8 @@ export default class SelectionManager {
         const value = (text || '').trim();
         if (!value) return false;
         if (value.length > 64) return false;
-        return LOOKUP_WORD_PATTERN.test(value);
+        if (!LOOKUP_WORD_PATTERN.test(value)) return false;
+        return !stopSet.has(value.toLowerCase());
     }
 
     renderSubtitleText(textEl, rawText) {
@@ -1086,48 +1092,14 @@ export default class SelectionManager {
 
     lockPageScroll() {
         if (this.lookupScrollLock) return;
-        const scrollX = window.scrollX || window.pageXOffset || 0;
-        const scrollY = window.scrollY || window.pageYOffset || 0;
-        const body = document.body;
-        if (!body) return;
-
-        const previousStyles = {
-            position: body.style.position,
-            top: body.style.top,
-            left: body.style.left,
-            right: body.style.right,
-            width: body.style.width,
-            paddingRight: body.style.paddingRight
-        };
-
-        const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
-        if (scrollbarWidth > 0) {
-            body.style.paddingRight = `${scrollbarWidth}px`;
-        }
-
-        body.style.position = 'fixed';
-        body.style.top = `-${scrollY}px`;
-        body.style.left = `-${scrollX}px`;
-        body.style.right = '0';
-        body.style.width = '100%';
-        body.classList.add('lookup-modal-open');
-        this.lookupScrollLock = { scrollX, scrollY, previousStyles };
+        this.lookupScrollLock = lockBodyScroll({ bodyClass: 'lookup-modal-open' });
     }
 
     unlockPageScroll() {
         if (!this.lookupScrollLock) return;
-        const { scrollX, scrollY, previousStyles } = this.lookupScrollLock;
+        const lock = this.lookupScrollLock;
         this.lookupScrollLock = null;
-        const body = document.body;
-        if (!body) return;
-        body.style.position = previousStyles.position;
-        body.style.top = previousStyles.top;
-        body.style.left = previousStyles.left;
-        body.style.right = previousStyles.right;
-        body.style.width = previousStyles.width;
-        body.style.paddingRight = previousStyles.paddingRight;
-        body.classList.remove('lookup-modal-open');
-        window.scrollTo(scrollX, scrollY);
+        unlockBodyScroll(lock);
     }
 
     focusLookupPopover() {
@@ -1487,7 +1459,7 @@ export default class SelectionManager {
     convertSelectionToHighlight(textEl) {
         const selection = window.getSelection ? window.getSelection() : null;
         if (!selection || selection.rangeCount === 0) return;
-        
+
         if (selection.isCollapsed) {
             this.clearDragOverlay();
             return;
