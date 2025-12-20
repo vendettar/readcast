@@ -18,6 +18,16 @@ export default class LocalFilesStore {
         };
 
         this.drafts.set(id, normalized);
+
+        const sessions = Array.isArray(this.sessions) ? this.sessions : [];
+        const existingIdx = sessions.findIndex((s) => s && s.id === id);
+        if (existingIdx >= 0) {
+            sessions[existingIdx] = { ...sessions[existingIdx], ...normalized };
+        } else {
+            sessions.push(normalized);
+        }
+        sessions.sort((a, b) => (b.lastOpenedAt || 0) - (a.lastOpenedAt || 0));
+        this.sessions = sessions;
     }
 
     mergeSessions(loadedSessions) {

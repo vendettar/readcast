@@ -24,7 +24,7 @@ export const translations = {
     shortcutNextLabel: '下一句',
     invalidFiles: '请导入 .mp3, .mp4, .m4a 或 .srt 文件',
     audioTooLarge: '音频文件过大（限制 300MB）。',
-    storageLimitReached: '存储空间已满（最多 10 个音频），请清理后再试。',
+    storageLimitReached: '存储空间已满，请清理后再试。',
     audioMissing: '还未上传音频文件',
     subtitleMissing: '还未上传字幕文件',
     subtitleStorageTooLarge:
@@ -128,12 +128,11 @@ export const translations = {
     shortcutPlayLabel: 'Play / Pause',
     shortcutPrevLabel: 'Previous line',
     shortcutNextLabel: 'Next line',
-    invalidFiles: 'Please import an .mp3, .mp4, .m4a or .srt file',
-    audioTooLarge: 'Audio file is too large (limit is 300MB).',
-    storageLimitReached:
-      'Storage limit reached (max 10 audios). Please clean up.',
-    audioMissing: 'Audio file not uploaded yet',
-    subtitleMissing: 'Subtitle file not uploaded yet',
+        invalidFiles: 'Please import an .mp3, .mp4, .m4a or .srt file',
+        audioTooLarge: 'Audio file is too large (limit is 300MB).',
+        storageLimitReached: 'Storage limit reached. Please clean up.',
+        audioMissing: 'Audio file not uploaded yet',
+        subtitleMissing: 'Subtitle file not uploaded yet',
     subtitleStorageTooLarge:
       'Subtitle file is larger than 1MB and will not be saved locally (re-import after refresh).',
     subtitleStorageFailed:
@@ -237,12 +236,11 @@ export const translations = {
     shortcutPlayLabel: '再生 / 一時停止',
     shortcutPrevLabel: '前の文',
     shortcutNextLabel: '次の文',
-    invalidFiles: '.mp3 または .srt ファイルを追加してください',
-    audioTooLarge: '音声ファイルが大きすぎます（制限 300MB）。',
-    storageLimitReached:
-      'ストレージの上限に達しました（音声は最大 10 件）。整理してから再試行してください。',
-    audioMissing: '音声ファイルがまだありません',
-    subtitleMissing: '字幕ファイルがまだありません',
+        invalidFiles: '.mp3 または .srt ファイルを追加してください',
+        audioTooLarge: '音声ファイルが大きすぎます（制限 300MB）。',
+        storageLimitReached: 'ストレージの上限に達しました。整理してから再試行してください。',
+        audioMissing: '音声ファイルがまだありません',
+        subtitleMissing: '字幕ファイルがまだありません',
     subtitleStorageTooLarge:
       '字幕ファイルが 1MB を超えるため、ローカルに保存できません（更新後は再読み込みが必要です）。',
     subtitleStorageFailed:
@@ -347,12 +345,11 @@ export const translations = {
     shortcutPlayLabel: '재생 / 일시정지',
     shortcutPrevLabel: '이전 문장',
     shortcutNextLabel: '다음 문장',
-    invalidFiles: '.mp3 또는 .srt 파일을 추가하세요',
-    audioTooLarge: '오디오 파일이 너무 큽니다(300MB 제한).',
-    storageLimitReached:
-      '저장 공간 한도에 도달했습니다(오디오 최대 10개). 정리한 후 다시 시도하세요.',
-    audioMissing: '오디오 파일이 아직 없습니다',
-    subtitleMissing: '자막 파일이 아직 없습니다',
+        invalidFiles: '.mp3 또는 .srt 파일을 추가하세요',
+        audioTooLarge: '오디오 파일이 너무 큽니다(300MB 제한).',
+        storageLimitReached: '저장 공간 한도에 도달했습니다. 정리한 후 다시 시도하세요.',
+        audioMissing: '오디오 파일이 아직 없습니다',
+        subtitleMissing: '자막 파일이 아직 없습니다',
     subtitleStorageTooLarge:
       '자막 파일이 1MB를 초과하여 로컬에 저장할 수 없습니다(새로고침 후 다시 불러와야 합니다).',
     subtitleStorageFailed:
@@ -458,8 +455,7 @@ export const translations = {
     shortcutNextLabel: 'Nächster Satz',
     invalidFiles: 'Bitte eine .mp3- oder .srt-Datei importieren',
     audioTooLarge: 'Audiodatei ist zu groß (Limit 300MB).',
-    storageLimitReached:
-      'Speicherlimit erreicht (max. 10 Audios). Bitte räume Speicher frei.',
+    storageLimitReached: 'Speicherlimit erreicht. Bitte räume Speicher frei.',
     audioMissing: 'Audio-Datei noch nicht hochgeladen',
     subtitleMissing: 'Untertitel-Datei noch nicht hochgeladen',
     subtitleStorageTooLarge:
@@ -567,8 +563,7 @@ export const translations = {
     shortcutNextLabel: 'Siguiente frase',
     invalidFiles: 'Importa un archivo .mp3 o .srt',
     audioTooLarge: 'El archivo de audio es demasiado grande (límite 300MB).',
-    storageLimitReached:
-      'Se alcanzó el límite de almacenamiento (máximo 10 audios). Limpia espacio e inténtalo de nuevo.',
+    storageLimitReached: 'Se alcanzó el límite de almacenamiento. Limpia espacio e inténtalo de nuevo.',
     audioMissing: 'Todavía no se ha subido el archivo de audio',
     subtitleMissing: 'Todavía no se ha subido el archivo de subtítulos',
     subtitleStorageTooLarge:

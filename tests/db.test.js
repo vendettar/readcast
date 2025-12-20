@@ -60,6 +60,54 @@ describe('IndexedDB Module', () => {
         expect(updated.title).toBe('Original'); // Should remain
     });
 
+    it('should upsert podcasts and list them sorted by addedAt', async () => {
+        await DB.upsertPodcast({
+            feedUrl: 'https://example.com/feed-a.xml',
+            title: 'A',
+            addedAt: 1000
+        });
+        await DB.upsertPodcast({
+            feedUrl: 'https://example.com/feed-b.xml',
+            title: 'B',
+            addedAt: 2000
+        });
+
+        const items = await DB.getAllPodcasts();
+        const relevant = items.filter((p) => p && typeof p.feedUrl === 'string' && p.feedUrl.includes('example.com/feed-'));
+        expect(relevant.length).toBeGreaterThanOrEqual(2);
+        expect(relevant[0].feedUrl).toBe('https://example.com/feed-b.xml');
+
+        await DB.deletePodcast('https://example.com/feed-a.xml');
+        const afterDelete = await DB.getAllPodcasts();
+        expect(afterDelete.some((p) => p.feedUrl === 'https://example.com/feed-a.xml')).toBe(false);
+    });
+
+    it('should upsert favorites and list them sorted by addedAt', async () => {
+        await DB.upsertFavorite({
+            key: 'https://example.com/feed.xml::https://example.com/a.mp3',
+            feedUrl: 'https://example.com/feed.xml',
+            audioUrl: 'https://example.com/a.mp3',
+            episodeTitle: 'Ep A',
+            addedAt: 1000
+        });
+        await DB.upsertFavorite({
+            key: 'https://example.com/feed.xml::https://example.com/b.mp3',
+            feedUrl: 'https://example.com/feed.xml',
+            audioUrl: 'https://example.com/b.mp3',
+            episodeTitle: 'Ep B',
+            addedAt: 2000
+        });
+
+        const items = await DB.getAllFavorites();
+        const relevant = items.filter((f) => f && typeof f.key === 'string' && f.key.includes('example.com/feed.xml::'));
+        expect(relevant.length).toBeGreaterThanOrEqual(2);
+        expect(relevant[0].audioUrl).toBe('https://example.com/b.mp3');
+
+        await DB.deleteFavorite('https://example.com/feed.xml::https://example.com/a.mp3');
+        const afterDelete = await DB.getAllFavorites();
+        expect(afterDelete.some((f) => f.key === 'https://example.com/feed.xml::https://example.com/a.mp3')).toBe(false);
+    });
+
     it('should delete session', async () => {
         const delId = 'del-session';
         await DB.createSession(delId, { title: 'To Delete' });

@@ -7,6 +7,12 @@ export const APPLE_MARKETING_RSS_BASE_URL = 'https://rss.applemarketingtools.com
 export const RECOMMENDED_STORAGE_PREFIX = 'readcastGalleryRecommendedV2:';
 export const RECOMMENDED_TTL_MS = 24 * 60 * 60 * 1000;
 export const RECOMMENDED_ITUNES_LIMIT = 10;
+export const ITUNES_SEARCH_CACHE_PREFIX = 'readcastItunesSearchCacheV1:';
+export const ITUNES_SEARCH_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+export const ITUNES_SEARCH_MEMORY_TTL_MS = 30 * 60 * 1000;
+export const ITUNES_SEARCH_NEGATIVE_TTL_MS = 10 * 60 * 1000;
+export const ITUNES_SEARCH_CACHE_MAX_ENTRIES = 80;
+export const ITUNES_SEARCH_MEMORY_MAX_ENTRIES = 200;
 export const FEED_FETCHABILITY_CACHE_PREFIX = 'readcastGalleryFeedFetchabilityV1:';
 export const FEED_FETCHABILITY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export const FEED_FETCHABILITY_TIMEOUT_MS = 5000;
@@ -14,6 +20,8 @@ export const APPLE_MARKETING_RSS_TIMEOUT_MS = 8000;
 export const APPLE_MARKETING_RSS_DEFAULT_LIMIT = 50;
 export const RSS_DIRECT_TIMEOUT_MS = 8000;
 export const RSS_PROXY_TIMEOUT_MS = 15000;
+export const RSS_PARSED_MEMORY_TTL_MS = 30 * 60 * 1000;
+export const RSS_PARSED_MEMORY_MAX_ENTRIES = 50;
 export const APPLE_CHART_CACHE_PREFIX = 'readcastAppleTopPodcastsV1:';
 export const APPLE_LOOKUP_CACHE_PREFIX = 'readcastAppleTopLookupV1:';
 export const APPLE_CHART_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
@@ -77,6 +85,14 @@ export function normalizeUrl(url) {
 function extractText(node) {
     if (!node) return '';
     return (node.textContent || '').trim();
+}
+
+function normalizeSearchTerm(term) {
+    return String(term || '')
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+        .slice(0, 160);
 }
 
 function htmlToPlainText(html, { bullet = '• ' } = {}) {
@@ -224,6 +240,8 @@ export default class GalleryRemote {
         this.appleChartInflight = new Map();
         this.appleLookupCache = new Map();
         this.appleLookupInflight = new Map();
+        this.itunesSearchMemoryCache = new Map();
+        this.rssParsedMemoryCache = new Map();
     }
 
     normalizeCustomProxyUrl(url) {
@@ -271,6 +289,264 @@ export default class GalleryRemote {
     debugGalleryLog(...args) {
         if (!this.isGalleryDebugEnabled()) return;
         console.log('[gallery]', ...args);
+    }
+
+    getItunesSearchCacheKey(country) {
+        const c = String(country || '').trim().toLowerCase() || 'us';
+        return `${ITUNES_SEARCH_CACHE_PREFIX}${c}`;
+    }
+
+    loadItunesSearchCache(country) {
+        if (typeof localStorage === 'undefined') return {};
+        const raw = localStorage.getItem(this.getItunesSearchCacheKey(country));
+        const parsed = raw ? safeJsonParse(raw, null) : null;
+        if (!parsed || typeof parsed !== 'object') return {};
+        if (parsed.v !== 1 || !parsed.entries || typeof parsed.entries !== 'object') return {};
+
+        const now = Date.now();
+        const next = {};
+        Object.entries(parsed.entries).forEach(([key, entry]) => {
+            if (!key || !entry || typeof entry !== 'object') return;
+            const at = typeof entry.at === 'number' ? entry.at : 0;
+            const ttlMs = typeof entry.ttlMs === 'number' ? entry.ttlMs : ITUNES_SEARCH_CACHE_TTL_MS;
+            const kind = typeof entry.kind === 'string' ? entry.kind : 'ok';
+            const items = Array.isArray(entry.items) ? entry.items : null;
+            const message = typeof entry.message === 'string' ? entry.message : '';
+            if (!at) return;
+            if (now - at > ttlMs) return;
+            if (kind === 'error') {
+                next[key] = { at, ttlMs, kind: 'error', message };
+                return;
+            }
+            if (!items) return;
+            next[key] = { at, ttlMs, kind: 'ok', items };
+        });
+        return next;
+    }
+
+    saveItunesSearchCache(country, entries) {
+        if (typeof localStorage === 'undefined') return;
+        const now = Date.now();
+        const list = Object.entries(entries || {})
+            .map(([key, entry]) => ({
+                key,
+                at: entry && typeof entry.at === 'number' ? entry.at : 0,
+                ttlMs: entry && typeof entry.ttlMs === 'number' ? entry.ttlMs : ITUNES_SEARCH_CACHE_TTL_MS,
+                kind: entry && typeof entry.kind === 'string' ? entry.kind : 'ok',
+                items: entry && Array.isArray(entry.items) ? entry.items : null,
+                message: entry && typeof entry.message === 'string' ? entry.message : ''
+            }))
+            .filter((row) => {
+                if (!row.key || !row.at) return false;
+                if (now - row.at > row.ttlMs) return false;
+                if (row.kind === 'error') return true;
+                return Boolean(row.items);
+            })
+            .sort((a, b) => b.at - a.at)
+            .slice(0, ITUNES_SEARCH_CACHE_MAX_ENTRIES);
+
+        const payload = {
+            v: 1,
+            entries: Object.fromEntries(
+                list.map((row) => [
+                    row.key,
+                    row.kind === 'error'
+                        ? { at: row.at, ttlMs: row.ttlMs, kind: 'error', message: row.message }
+                        : { at: row.at, ttlMs: row.ttlMs, kind: 'ok', items: row.items }
+                ])
+            )
+        };
+        try {
+            localStorage.setItem(this.getItunesSearchCacheKey(country), JSON.stringify(payload));
+        } catch {
+            // ignore
+        }
+    }
+
+    getItunesSearchMemoryKey(country, term) {
+        const c = String(country || '').trim().toLowerCase() || 'us';
+        const t = normalizeSearchTerm(term);
+        if (!t) return '';
+        return `${c}::${t}`;
+    }
+
+    getItunesSearchMemoryCached(country, term) {
+        const key = this.getItunesSearchMemoryKey(country, term);
+        if (!key) return null;
+        const entry = this.itunesSearchMemoryCache.get(key);
+        if (!entry || typeof entry !== 'object') return null;
+        const at = typeof entry.at === 'number' ? entry.at : 0;
+        const ttlMs = typeof entry.ttlMs === 'number' ? entry.ttlMs : ITUNES_SEARCH_MEMORY_TTL_MS;
+        const kind = typeof entry.kind === 'string' ? entry.kind : 'ok';
+        const items = Array.isArray(entry.items) ? entry.items : null;
+        const message = typeof entry.message === 'string' ? entry.message : '';
+        if (!at) return null;
+        if (Date.now() - at > ttlMs) {
+            this.itunesSearchMemoryCache.delete(key);
+            return null;
+        }
+        this.itunesSearchMemoryCache.delete(key);
+        this.itunesSearchMemoryCache.set(key, entry);
+        if (kind === 'error') return { kind: 'error', message };
+        if (!items) return null;
+        return { kind: 'ok', items };
+    }
+
+    setItunesSearchMemoryCached(country, term, items, { ttlMs = ITUNES_SEARCH_MEMORY_TTL_MS } = {}) {
+        const key = this.getItunesSearchMemoryKey(country, term);
+        if (!key) return;
+        const entry = { at: Date.now(), ttlMs, kind: 'ok', items: Array.isArray(items) ? items : [] };
+        this.itunesSearchMemoryCache.delete(key);
+        this.itunesSearchMemoryCache.set(key, entry);
+        while (this.itunesSearchMemoryCache.size > ITUNES_SEARCH_MEMORY_MAX_ENTRIES) {
+            const firstKey = this.itunesSearchMemoryCache.keys().next().value;
+            if (!firstKey) break;
+            this.itunesSearchMemoryCache.delete(firstKey);
+        }
+    }
+
+    setItunesSearchMemoryError(country, term, message = '', { ttlMs = ITUNES_SEARCH_NEGATIVE_TTL_MS } = {}) {
+        const key = this.getItunesSearchMemoryKey(country, term);
+        if (!key) return;
+        const entry = { at: Date.now(), ttlMs, kind: 'error', message: String(message || '') };
+        this.itunesSearchMemoryCache.delete(key);
+        this.itunesSearchMemoryCache.set(key, entry);
+        while (this.itunesSearchMemoryCache.size > ITUNES_SEARCH_MEMORY_MAX_ENTRIES) {
+            const firstKey = this.itunesSearchMemoryCache.keys().next().value;
+            if (!firstKey) break;
+            this.itunesSearchMemoryCache.delete(firstKey);
+        }
+    }
+
+    getItunesSearchLocalCached(country, term) {
+        const t = normalizeSearchTerm(term);
+        if (!t) return null;
+        const cache = this.loadItunesSearchCache(country);
+        const entry = cache[t];
+        if (!entry || typeof entry !== 'object') return null;
+        const at = typeof entry.at === 'number' ? entry.at : 0;
+        const ttlMs = typeof entry.ttlMs === 'number' ? entry.ttlMs : ITUNES_SEARCH_CACHE_TTL_MS;
+        const kind = typeof entry.kind === 'string' ? entry.kind : 'ok';
+        const items = Array.isArray(entry.items) ? entry.items : null;
+        const message = typeof entry.message === 'string' ? entry.message : '';
+        if (!at) return null;
+        if (Date.now() - at > ttlMs) return null;
+        entry.at = Date.now();
+        cache[t] = entry;
+        this.saveItunesSearchCache(country, cache);
+        if (kind === 'error') return { kind: 'error', message };
+        if (!items) return null;
+        return { kind: 'ok', items };
+    }
+
+    setItunesSearchLocalCached(country, term, items, { ttlMs = ITUNES_SEARCH_CACHE_TTL_MS } = {}) {
+        const t = normalizeSearchTerm(term);
+        if (!t) return;
+        const cache = this.loadItunesSearchCache(country);
+        cache[t] = { at: Date.now(), ttlMs, kind: 'ok', items: Array.isArray(items) ? items : [] };
+        this.saveItunesSearchCache(country, cache);
+    }
+
+    setItunesSearchLocalError(country, term, message = '', { ttlMs = ITUNES_SEARCH_NEGATIVE_TTL_MS } = {}) {
+        const t = normalizeSearchTerm(term);
+        if (!t) return;
+        const cache = this.loadItunesSearchCache(country);
+        cache[t] = { at: Date.now(), ttlMs, kind: 'error', message: String(message || '') };
+        this.saveItunesSearchCache(country, cache);
+    }
+
+    getRssParsedCached(feedUrl) {
+        const key = normalizeUrl(feedUrl).toLowerCase();
+        if (!key) return null;
+        const entry = this.rssParsedMemoryCache.get(key);
+        if (!entry || typeof entry !== 'object') return null;
+        const at = typeof entry.at === 'number' ? entry.at : 0;
+        const parsed = entry.parsed && typeof entry.parsed === 'object' ? entry.parsed : null;
+        if (!at || !parsed) return null;
+        if (Date.now() - at > RSS_PARSED_MEMORY_TTL_MS) {
+            this.rssParsedMemoryCache.delete(key);
+            return null;
+        }
+        this.rssParsedMemoryCache.delete(key);
+        this.rssParsedMemoryCache.set(key, entry);
+        return parsed;
+    }
+
+    setRssParsedCached(feedUrl, parsed) {
+        const key = normalizeUrl(feedUrl).toLowerCase();
+        if (!key || !parsed || typeof parsed !== 'object') return;
+        const entry = { at: Date.now(), parsed };
+        this.rssParsedMemoryCache.delete(key);
+        this.rssParsedMemoryCache.set(key, entry);
+        while (this.rssParsedMemoryCache.size > RSS_PARSED_MEMORY_MAX_ENTRIES) {
+            const firstKey = this.rssParsedMemoryCache.keys().next().value;
+            if (!firstKey) break;
+            this.rssParsedMemoryCache.delete(firstKey);
+        }
+    }
+
+    clearRecommendedCache(country, lang) {
+        if (typeof localStorage === 'undefined') return;
+        try {
+            localStorage.removeItem(this.getRecommendedCacheKey(country, lang));
+        } catch {
+            // ignore
+        }
+    }
+
+    clearAppleTopCaches(country) {
+        const c = String(country || '').trim().toLowerCase() || 'us';
+
+        // Clear in-memory caches.
+        const chartPrefix = `appleTop:${c}:`;
+        const lookupPrefix = `appleTopLookup:${c}:`;
+        [this.appleChartCache, this.appleChartInflight].forEach((map) => {
+            Array.from(map.keys()).forEach((key) => {
+                if (typeof key === 'string' && key.startsWith(chartPrefix)) map.delete(key);
+            });
+        });
+        [this.appleLookupCache, this.appleLookupInflight].forEach((map) => {
+            Array.from(map.keys()).forEach((key) => {
+                if (typeof key === 'string' && key.startsWith(lookupPrefix)) map.delete(key);
+            });
+        });
+
+        if (typeof localStorage === 'undefined') return;
+        try {
+            Object.keys(localStorage).forEach((key) => {
+                if (typeof key !== 'string') return;
+                if (key.startsWith(`${APPLE_CHART_CACHE_PREFIX}${c}:`)) {
+                    localStorage.removeItem(key);
+                } else if (key.startsWith(`${APPLE_LOOKUP_CACHE_PREFIX}${c}:`)) {
+                    localStorage.removeItem(key);
+                }
+            });
+        } catch {
+            // ignore
+        }
+    }
+
+    clearItunesSearchCache(country, term) {
+        const c = String(country || '').trim().toLowerCase() || 'us';
+        const t = normalizeSearchTerm(term);
+        const memoryKey = this.getItunesSearchMemoryKey(c, t);
+        if (memoryKey) this.itunesSearchMemoryCache.delete(memoryKey);
+
+        if (typeof localStorage === 'undefined') return;
+        if (!t) {
+            try {
+                localStorage.removeItem(this.getItunesSearchCacheKey(c));
+            } catch {
+                // ignore
+            }
+            return;
+        }
+
+        const cache = this.loadItunesSearchCache(c);
+        if (cache && cache[t]) {
+            delete cache[t];
+            this.saveItunesSearchCache(c, cache);
+        }
     }
 
     async fetchJsonWithProxy(url, { signal, timeoutMs = APPLE_MARKETING_RSS_TIMEOUT_MS } = {}) {
@@ -1023,18 +1299,7 @@ export default class GalleryRemote {
         if (!parsed || typeof parsed !== 'object') return null;
         const at = typeof parsed.at === 'number' ? parsed.at : 0;
         if (!at || Date.now() - at > RECOMMENDED_TTL_MS) return null;
-        const groups = Array.isArray(parsed.groups) ? parsed.groups : null;
-        if (groups) return groups;
-        const items = Array.isArray(parsed.items) ? parsed.items : [];
-        if (items.length === 0) return [];
-        return [
-            {
-                id: 'recommended',
-                label: 'Recommended',
-                term: '',
-                items
-            }
-        ];
+        return Array.isArray(parsed.groups) ? parsed.groups : null;
     }
 
     writeRecommendedCache(country, lang, groups) {
@@ -1077,19 +1342,63 @@ export default class GalleryRemote {
             .filter((it) => it.id && it.title && it.feedUrl);
     }
 
-    async performSearch({ term, country, signal } = {}) {
+    async performSearch({ term, country, signal, forceRefresh = false } = {}) {
         const q = String(term || '').trim();
         if (!q) return [];
-        const results = await this.fetchItunesPodcastsForTerm({ term: q, country, signal, limit: 25 });
-        return results.map((item) => ({ ...item, description: '' }));
+
+        if (!forceRefresh) {
+            const memory = this.getItunesSearchMemoryCached(country, q);
+            if (memory && memory.kind === 'error') {
+                throw new Error(memory.message || 'search_failed');
+            }
+            if (memory && memory.kind === 'ok') {
+                return memory.items.map((item) => ({ ...item, description: '' }));
+            }
+
+            const local = this.getItunesSearchLocalCached(country, q);
+            if (local && local.kind === 'error') {
+                this.setItunesSearchMemoryError(country, q, local.message || 'search_failed');
+                throw new Error(local.message || 'search_failed');
+            }
+            if (local && local.kind === 'ok') {
+                this.setItunesSearchMemoryCached(country, q, local.items);
+                return local.items.map((item) => ({ ...item, description: '' }));
+            }
+        } else {
+            this.clearItunesSearchCache(country, q);
+        }
+
+        try {
+            const results = await this.fetchItunesPodcastsForTerm({ term: q, country, signal, limit: 25 });
+            const ttlMs = results.length === 0 ? ITUNES_SEARCH_NEGATIVE_TTL_MS : undefined;
+
+            this.setItunesSearchMemoryCached(country, q, results, {
+                ttlMs: ttlMs || ITUNES_SEARCH_MEMORY_TTL_MS
+            });
+            this.setItunesSearchLocalCached(country, q, results, {
+                ttlMs: ttlMs || ITUNES_SEARCH_CACHE_TTL_MS
+            });
+
+            return results.map((item) => ({ ...item, description: '' }));
+        } catch (error) {
+            if (error && error.name === 'AbortError') throw error;
+            const message = String(error && error.message ? error.message : 'search_failed');
+            this.setItunesSearchMemoryError(country, q, message, { ttlMs: ITUNES_SEARCH_NEGATIVE_TTL_MS });
+            this.setItunesSearchLocalError(country, q, message, { ttlMs: ITUNES_SEARCH_NEGATIVE_TTL_MS });
+            throw error;
+        }
     }
 
     async fetchAndParseFeed({ feedUrl, signal } = {}) {
         const url = normalizeUrl(feedUrl);
         if (!url) throw new Error('missing-feed-url');
+        const cached = this.getRssParsedCached(url);
+        if (cached) return cached;
         try {
             const xmlText = await this.fetchTextDirect(url, { signal, timeoutMs: RSS_DIRECT_TIMEOUT_MS });
-            return parseRss(xmlText);
+            const parsed = parseRss(xmlText);
+            this.setRssParsedCached(url, parsed);
+            return parsed;
         } catch (error) {
             if (error && error.name === 'AbortError') {
                 // If the user aborted, propagate. If it was a timeout, try proxy before failing.
@@ -1099,7 +1408,9 @@ export default class GalleryRemote {
         }
 
         const xmlText = await this.fetchTextWithAllOrigins(url, { signal, timeoutMs: RSS_PROXY_TIMEOUT_MS });
-        return parseRss(xmlText);
+        const parsed = parseRss(xmlText);
+        this.setRssParsedCached(url, parsed);
+        return parsed;
     }
 
     async pickCorsAllowedRecommended(country, items, { signal, desired = 3, seen = null, validate = null } = {}) {

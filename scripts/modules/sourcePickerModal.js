@@ -3,7 +3,6 @@ import GalleryRemote, {
   GALLERY_COUNTRY_OPTIONS,
   RECOMMENDED_CATEGORY_IDS,
   debounce,
-  safeJsonParse,
   normalizeUrl,
   parseCssPx,
   computeSelectWidthPx,
@@ -15,15 +14,18 @@ import {
   DEFAULT_MODAL_BLOCKED_KEY_CODES,
   DEFAULT_MODAL_BLOCKED_KEYS,
 } from './modalInputLock.js';
+import { DB } from './db.js';
+import { icons } from './icons.js';
 
 export { computeSelectWidthPx } from './galleryRemote.js';
 
-const LIBRARY_STORAGE_KEY = 'readcastLibraryV1';
-const FAVORITES_STORAGE_KEY = 'readcastEpisodeFavoritesV1';
 const RECOMMENDED_PER_CATEGORY = 3;
 const RECOMMENDED_INITIAL_CATEGORIES = 4;
 const RECOMMENDED_LOAD_MORE_CATEGORIES = 2;
 const RECOMMENDED_SCROLL_BOTTOM_PX = 140;
+const PODCAST_EPISODES_INITIAL = 8;
+const PODCAST_EPISODES_LOAD_MORE = 4;
+const PODCAST_EPISODES_SCROLL_BOTTOM_PX = 140;
 const GALLERY_COUNTRY_OVERRIDE_KEY = 'readcastGalleryCountryOverrideV1';
 const GALLERY_CATEGORY_FILTER_KEY = 'readcastGalleryCategoryFilterV1';
 const REMOTE_SEARCH_DEBOUNCE_MS = 380;
@@ -88,6 +90,18 @@ export default class SourcePickerModal {
     this.recommendedClickDelegated = false;
     this.recommendedScrollHandler = null;
     this.recommendedScrollRaf = 0;
+
+    this.libraryLoaded = false;
+    this.libraryLoading = false;
+    this.library = {};
+
+    this.favoritesLoaded = false;
+    this.favoritesLoading = false;
+    this.favorites = {};
+    this.favoritesInflight = null;
+
+    this.podcastEpisodeVisibleCount = PODCAST_EPISODES_INITIAL;
+    this.podcastEpisodeScrollHandler = null;
   }
 
   isOpen() {
@@ -475,7 +489,7 @@ export default class SourcePickerModal {
     if (this.view === 'search') {
       const query = this.searchInput ? this.searchInput.value.trim() : '';
       if (query) {
-        this.performSearch(query);
+        this.performSearch(query, { forceRefresh: true });
       } else {
         this.abortCurrentRequest();
         this.recommendedLoading = false;
@@ -483,6 +497,11 @@ export default class SourcePickerModal {
         this.recommendedGroups = [];
         this.recommendedAllLoaded = false;
         this.recommendedTriedCategoryIds = new Set();
+        this.remote.clearRecommendedCache(
+          this.getRecommendedCountry(),
+          this.getGalleryLanguage()
+        );
+        this.remote.clearAppleTopCaches(this.getRecommendedCountry());
         this.ensureRecommendedLoaded();
       }
       return;
@@ -557,48 +576,7 @@ export default class SourcePickerModal {
     }
   }
 
-  setupScrollAnimation() {
-    if (!this.contentEl) return;
-    if (this.scrollHandler) {
-      this.contentEl.removeEventListener('scroll', this.scrollHandler);
-      this.scrollHandler = null;
-    }
 
-    const scrollContainer = this.contentEl;
-    const headerBg = this.contentEl.querySelector('.gallery-header-bg');
-    const backBtn = this.contentEl.querySelector('.gallery-inline-back');
-    const closeBtn = this.contentEl.querySelector('.gallery-inline-close');
-    const titleEl = this.contentEl.querySelector('.gallery-inline-title');
-
-    if (!headerBg || !backBtn || !closeBtn) return;
-
-    let ticking = false;
-    const update = () => {
-      const scrollTop = scrollContainer.scrollTop;
-      const threshold = 60;
-      const progress = Math.min(Math.max(scrollTop / threshold, 0), 1);
-
-      headerBg.style.opacity = progress.toString();
-      if (titleEl) titleEl.style.opacity = progress.toString();
-      const scale = 1 - progress * 0.15;
-      const transform = `scale(${scale})`;
-
-      backBtn.style.transform = transform;
-      closeBtn.style.transform = transform;
-      ticking = false;
-    };
-
-    const onScroll = () => {
-      if (!ticking) {
-        requestAnimationFrame(update);
-        ticking = true;
-      }
-    };
-
-    this.scrollHandler = onScroll;
-    scrollContainer.addEventListener('scroll', onScroll, { passive: true });
-    update();
-  }
 
   openView(view) {
     const normalizedView = String(view || 'search')
@@ -654,6 +632,8 @@ export default class SourcePickerModal {
     if (this.modal) this.modal.removeAttribute('hidden');
     this.activateModalLock();
 
+    void this.ensureLibraryLoaded();
+    void this.ensureFavoritesLoaded();
     if (nextView === 'search') {
       this.ensureRecommendedLoaded();
     }
@@ -682,43 +662,79 @@ export default class SourcePickerModal {
     this.updateRecommendedScrollListener();
   }
 
-  loadLibrary() {
-    if (typeof localStorage === 'undefined') return {};
-    const raw = localStorage.getItem(LIBRARY_STORAGE_KEY);
-    const parsed = raw ? safeJsonParse(raw, {}) : {};
-    return parsed && typeof parsed === 'object' ? parsed : {};
+  supportsLibraryIndexedDb() {
+    return typeof indexedDB !== 'undefined' && DB && typeof DB.open === 'function';
   }
 
-  loadFavorites() {
-    if (typeof localStorage === 'undefined') return {};
-    const raw = localStorage.getItem(FAVORITES_STORAGE_KEY);
-    const parsed = raw ? safeJsonParse(raw, {}) : {};
-    const favorites = parsed && typeof parsed === 'object' ? parsed : {};
-    const normalized = {};
-    Object.entries(favorites).forEach(([key, entry]) => {
-      if (!entry || typeof entry !== 'object') return;
-      const feedUrl = normalizeUrl(entry.feedUrl);
-      const audioUrl = normalizeUrl(entry.audioUrl);
-      if (!feedUrl || !audioUrl) return;
-      const k =
-        typeof key === 'string' && key
-          ? key
-          : `${feedUrl.toLowerCase()}::${audioUrl.toLowerCase()}`;
-      normalized[k] = entry;
-    });
-    return normalized;
+  supportsFavoritesIndexedDb() {
+    return typeof indexedDB !== 'undefined' && DB && typeof DB.open === 'function';
   }
 
-  saveFavorites(favorites) {
-    if (typeof localStorage === 'undefined') return;
+  getLibrary() {
+    return this.library || {};
+  }
+
+  async ensureLibraryLoaded() {
+    if (this.libraryLoading || this.libraryLoaded) return;
+    this.libraryLoading = true;
+
     try {
-      localStorage.setItem(
-        FAVORITES_STORAGE_KEY,
-        JSON.stringify(favorites || {})
-      );
-    } catch {
-      // ignore
+      if (!this.supportsLibraryIndexedDb()) {
+        this.library = {};
+        this.libraryLoaded = true;
+        return;
+      }
+
+      const items = await DB.getAllPodcasts();
+      const map = {};
+      items.forEach((podcast) => {
+        const feedUrl = normalizeUrl(podcast && podcast.feedUrl);
+        if (!feedUrl) return;
+        map[feedUrl] = podcast;
+      });
+      this.library = map;
+      this.libraryLoaded = true;
+    } finally {
+      this.libraryLoading = false;
+      if (this.isOpen()) this.render();
     }
+  }
+
+  getFavorites() {
+    return this.favorites || {};
+  }
+
+  async ensureFavoritesLoaded() {
+    if (this.favoritesLoaded) return;
+    if (this.favoritesInflight) return this.favoritesInflight;
+
+    const run = (async () => {
+      this.favoritesLoading = true;
+      try {
+        if (!this.supportsFavoritesIndexedDb()) {
+          this.favorites = {};
+          this.favoritesLoaded = true;
+          return;
+        }
+
+        const items = await DB.getAllFavorites();
+        const map = {};
+        items.forEach((fav) => {
+          const key = typeof fav.key === 'string' ? fav.key : '';
+          if (!key) return;
+          map[key] = fav;
+        });
+        this.favorites = map;
+        this.favoritesLoaded = true;
+      } finally {
+        this.favoritesLoading = false;
+        this.favoritesInflight = null;
+        if (this.isOpen()) this.render();
+      }
+    })();
+
+    this.favoritesInflight = run;
+    return run;
   }
 
   getFavoriteEpisodeKey(podcast, episode) {
@@ -731,11 +747,11 @@ export default class SourcePickerModal {
   isEpisodeFavorited(podcast, episode) {
     const key = this.getFavoriteEpisodeKey(podcast, episode);
     if (!key) return false;
-    const favorites = this.loadFavorites();
+    const favorites = this.getFavorites();
     return Boolean(favorites[key]);
   }
 
-  toggleFavoriteEpisode(podcast, episode) {
+  async toggleFavoriteEpisode(podcast, episode) {
     const key = this.getFavoriteEpisodeKey(podcast, episode);
     if (!key) return;
 
@@ -743,11 +759,18 @@ export default class SourcePickerModal {
     const audioUrl = normalizeUrl(episode && episode.audioUrl);
     if (!feedUrl || !audioUrl) return;
 
-    const favorites = this.loadFavorites();
-    if (favorites[key]) {
+    await this.ensureFavoritesLoaded();
+    const favorites = this.getFavorites();
+    const existing = favorites[key];
+
+    if (existing) {
+      if (this.supportsFavoritesIndexedDb()) {
+        await DB.deleteFavorite(key);
+      }
       delete favorites[key];
     } else {
-      favorites[key] = {
+      const entry = {
+        key,
         feedUrl,
         audioUrl,
         episodeId: normalizeUrl(episode.id) || audioUrl,
@@ -758,8 +781,13 @@ export default class SourcePickerModal {
         podcastArtworkUrl: podcast.artworkUrl || '',
         addedAt: Date.now(),
       };
+      if (this.supportsFavoritesIndexedDb()) {
+        await DB.upsertFavorite(entry);
+      }
+      favorites[key] = entry;
     }
-    this.saveFavorites(favorites);
+    this.favorites = favorites;
+    this.favoritesLoaded = true;
     this.render();
   }
 
@@ -825,40 +853,42 @@ export default class SourcePickerModal {
     );
   }
 
-  saveLibrary(library) {
-    if (typeof localStorage === 'undefined') return;
-    try {
-      localStorage.setItem(LIBRARY_STORAGE_KEY, JSON.stringify(library || {}));
-    } catch {
-      // ignore
-    }
-  }
-
   isSubscribed(feedUrl) {
     const key = normalizeUrl(feedUrl);
     if (!key) return false;
-    const library = this.loadLibrary();
+    const library = this.getLibrary();
     return Boolean(library[key]);
   }
 
-  toggleSubscribe(podcast) {
+  async toggleSubscribe(podcast) {
     if (!podcast || !podcast.feedUrl) return;
     const feedUrl = normalizeUrl(podcast.feedUrl);
     if (!feedUrl) return;
-    const library = this.loadLibrary();
-    if (library[feedUrl]) {
-      delete library[feedUrl];
-    } else {
-      library[feedUrl] = {
-        feedUrl,
-        title: podcast.title || '',
-        author: podcast.author || '',
-        artworkUrl: podcast.artworkUrl || '',
-        addedAt: Date.now(),
-      };
+
+    await this.ensureLibraryLoaded();
+    const library = this.getLibrary();
+    const isSubbed = Boolean(library[feedUrl]);
+
+    if (this.supportsLibraryIndexedDb()) {
+      if (isSubbed) {
+        await DB.deletePodcast(feedUrl);
+        delete this.library[feedUrl];
+      } else {
+        const entry = {
+          feedUrl,
+          title: podcast.title || '',
+          author: podcast.author || '',
+          artworkUrl: podcast.artworkUrl || '',
+          collectionViewUrl: podcast.collectionViewUrl || '',
+          addedAt: Date.now(),
+        };
+        await DB.upsertPodcast(entry);
+        this.library[feedUrl] = entry;
+      }
+      this.libraryLoaded = true;
+      this.render();
+      return;
     }
-    this.saveLibrary(library);
-    this.render();
   }
 
   setLoading(message) {
@@ -866,7 +896,7 @@ export default class SourcePickerModal {
     this.contentEl.innerHTML = `<div class="gallery-empty">${escapeHtml(message)}</div>`;
   }
 
-  async performSearch(termRaw) {
+  async performSearch(termRaw, { forceRefresh = false } = {}) {
     const term = (termRaw || '').trim();
     if (!term) {
       this.searchResults = [];
@@ -887,6 +917,7 @@ export default class SourcePickerModal {
         term,
         country: this.getRecommendedCountry(),
         signal: this.currentAbort.signal,
+        forceRefresh,
       });
       this.searchResults = Array.isArray(results)
         ? results.filter((it) => it && it.title)
@@ -913,6 +944,7 @@ export default class SourcePickerModal {
     this.view = 'podcast';
     this.selectedPodcast = { ...podcast, feedUrl };
     this.episodes = [];
+    this.podcastEpisodeVisibleCount = PODCAST_EPISODES_INITIAL;
     this.rssError = null;
     this.podcastInfoOpen = false;
     this.render();
@@ -1197,9 +1229,9 @@ export default class SourcePickerModal {
   render() {
     if (!this.modal || !this.contentEl) return;
 
-    if (this.scrollHandler) {
-      this.contentEl.removeEventListener('scroll', this.scrollHandler);
-      this.scrollHandler = null;
+    if (this.podcastEpisodeScrollHandler) {
+      this.contentEl.removeEventListener('scroll', this.podcastEpisodeScrollHandler);
+      this.podcastEpisodeScrollHandler = null;
     }
 
     this.modal.classList.toggle(
@@ -1316,6 +1348,8 @@ export default class SourcePickerModal {
     this.rssError = null;
     this.podcastInfoOpen = false;
 
+    void this.ensureLibraryLoaded();
+    void this.ensureFavoritesLoaded();
     if (next === 'search') {
       this.searchResults = [];
       if (this.searchInput) this.searchInput.value = '';
@@ -1327,7 +1361,7 @@ export default class SourcePickerModal {
 
   renderSubscriptions() {
     if (!this.contentEl) return;
-    const library = this.loadLibrary();
+    const library = this.getLibrary();
     const items = Object.values(library || {}).sort(
       (a, b) => (b.addedAt || 0) - (a.addedAt || 0)
     );
@@ -1367,7 +1401,11 @@ export default class SourcePickerModal {
 
   renderFavorites() {
     if (!this.contentEl) return;
-    const favorites = this.loadFavorites();
+    if (!this.favoritesLoaded && this.favoritesLoading) {
+      this.contentEl.innerHTML = `<div class="gallery-empty">Loading…</div>`;
+      return;
+    }
+    const favorites = this.getFavorites();
     const items = Object.values(favorites || {})
       .filter((fav) => fav && fav.audioUrl)
       .sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
@@ -1404,7 +1442,7 @@ export default class SourcePickerModal {
 	                        <button type="button" class="gallery-favorite-btn gallery-episode-fav is-active" aria-label="${escapeHtml(
                             this.tg('galleryFavorited')
                           )}">
-	                            <span class="mask-icon gallery-favorite-icon icon-star-full" aria-hidden="true"></span>
+	                            ${icons.star}
 	                        </button>
 	                    </div>
 	                `;
@@ -1474,7 +1512,7 @@ export default class SourcePickerModal {
         favBtn.addEventListener('click', (event) => {
           event.preventDefault();
           event.stopPropagation();
-          this.toggleFavoriteEpisode(
+          void this.toggleFavoriteEpisode(
             {
               feedUrl: fav.feedUrl,
               title: fav.podcastTitle,
@@ -1611,12 +1649,17 @@ export default class SourcePickerModal {
 	            </div>
 	        `;
 
+    const visibleCountRaw = Number.isFinite(this.podcastEpisodeVisibleCount)
+      ? this.podcastEpisodeVisibleCount
+      : PODCAST_EPISODES_INITIAL;
+    const visibleCount = Math.max(0, Math.min(episodes.length, visibleCountRaw));
+
     const list =
       episodes.length === 0
         ? `${fallback || `<div class="gallery-empty">No episodes.</div>`}`
         : `<div class="gallery-episodes">
                     ${episodes
-                      .slice(0, 80)
+                      .slice(0, visibleCount)
                       .map((ep, idx) => {
                         const isFav = this.isEpisodeFavorited(podcast, ep);
                         const title = escapeHtml(ep.title || '');
@@ -1647,11 +1690,7 @@ export default class SourcePickerModal {
                                               : this.tg('galleryFavorite')
                                           )}"
 	                                    >
-	                                        <span class="mask-icon gallery-favorite-icon ${
-                                            isFav
-                                              ? 'icon-star-full'
-                                              : 'icon-star'
-                                          }" aria-hidden="true"></span>
+	                                        ${icons.star}
 	                                    </button>
                                 </div>
                             `;
@@ -1663,7 +1702,7 @@ export default class SourcePickerModal {
 
     const subBtn = this.contentEl.querySelector('.gallery-subscribe');
     if (subBtn)
-      subBtn.addEventListener('click', () => this.toggleSubscribe(podcast));
+      subBtn.addEventListener('click', () => void this.toggleSubscribe(podcast));
 
     const moreBtn = this.contentEl.querySelector('.gallery-detail-more');
     if (moreBtn) {
@@ -1756,12 +1795,45 @@ export default class SourcePickerModal {
         favBtn.addEventListener('click', (event) => {
           event.preventDefault();
           event.stopPropagation();
-          this.toggleFavoriteEpisode(podcast, ep);
+          void this.toggleFavoriteEpisode(podcast, ep);
         });
       }
     });
 
-    this.setupScrollAnimation();
+
+    this.updatePodcastEpisodeScrollListener();
+  }
+
+  updatePodcastEpisodeScrollListener() {
+    if (!this.contentEl) return;
+    if (this.view !== 'podcast') return;
+    const episodes = Array.isArray(this.episodes) ? this.episodes : [];
+    const visible = Number.isFinite(this.podcastEpisodeVisibleCount)
+      ? this.podcastEpisodeVisibleCount
+      : PODCAST_EPISODES_INITIAL;
+    if (episodes.length <= visible) return;
+
+    const onScroll = () => {
+      if (!this.contentEl) return;
+      if (this.view !== 'podcast') return;
+
+      const remaining =
+        this.contentEl.scrollHeight -
+        this.contentEl.scrollTop -
+        this.contentEl.clientHeight;
+      if (remaining > PODCAST_EPISODES_SCROLL_BOTTOM_PX) return;
+
+      const next = Math.min(episodes.length, visible + PODCAST_EPISODES_LOAD_MORE);
+      if (next === visible) return;
+
+      const scrollTop = this.contentEl.scrollTop;
+      this.podcastEpisodeVisibleCount = next;
+      this.render();
+      if (this.contentEl) this.contentEl.scrollTop = scrollTop;
+    };
+
+    this.podcastEpisodeScrollHandler = onScroll;
+    this.contentEl.addEventListener('scroll', onScroll, { passive: true });
   }
 
   openEpisodeDetail(episode) {
@@ -1801,9 +1873,7 @@ export default class SourcePickerModal {
                           ? this.tg('galleryFavorited')
                           : this.tg('galleryFavorite')
                       )}">
-	                        <span class="mask-icon gallery-favorite-icon ${
-                            isFav ? 'icon-star-full' : 'icon-star'
-                          }" aria-hidden="true"></span>
+	                        ${icons.star}
                     </button>
                 </div>
                 ${desc ? `<div class="gallery-episode-detail-desc">${desc}</div>` : ''}
@@ -1832,12 +1902,11 @@ export default class SourcePickerModal {
       favBtn.addEventListener('click', (event) => {
         event.preventDefault();
         event.stopPropagation();
-        this.toggleFavoriteEpisode(podcast, ep);
-        this.renderEpisodeDetail();
+        void this.toggleFavoriteEpisode(podcast, ep);
       });
     }
 
-    this.setupScrollAnimation();
+
   }
 
   renderRecommended() {

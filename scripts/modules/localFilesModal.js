@@ -8,7 +8,7 @@ import {
 } from './modalInputLock.js';
 
 export default class LocalFilesModal {
-  constructor({ t, onPlayLocalSession, getLocalSessions, onRequestUpload } = {}) {
+  constructor({ t, onPlayLocalSession, getLocalSessions, onRequestUpload, onDeleteSession } = {}) {
     this.t = typeof t === 'function' ? t : (key) => key;
     this.onPlayLocalSession =
       typeof onPlayLocalSession === 'function' ? onPlayLocalSession : null;
@@ -16,12 +16,15 @@ export default class LocalFilesModal {
       typeof getLocalSessions === 'function' ? getLocalSessions : async () => [];
     this.onRequestUpload =
       typeof onRequestUpload === 'function' ? onRequestUpload : null;
+    this.onDeleteSession =
+      typeof onDeleteSession === 'function' ? onDeleteSession : null;
 
     this.view = new LocalFileView({
       t: this.t,
       onPlayLocalSession: (id) => this.onPlayLocalSession && this.onPlayLocalSession(id),
       onRequestUpload: () => this.onRequestUpload && this.onRequestUpload(),
       getLocalSessions: () => this.getLocalSessions(),
+      onDeleteSession: (id) => this.onDeleteSession && this.onDeleteSession(id),
     });
 
     this.backdrop = null;

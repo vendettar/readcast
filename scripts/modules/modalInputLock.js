@@ -93,12 +93,7 @@ export function createModalInputLock({
 
   let active = false;
   let previousFocus = null;
-
-  let keydownHandler = null;
-  let focusInHandler = null;
-  let wheelHandler = null;
-  let touchMoveHandler = null;
-  let gestureHandler = null;
+  let controller = null;
 
   const containsTarget = (target) => {
     const container = getContainerFn();
@@ -114,9 +109,12 @@ export function createModalInputLock({
 
     active = true;
     previousFocus = document.activeElement;
+    controller = new AbortController();
+    const { signal } = controller;
+
     if (onActivateFn) onActivateFn();
 
-    keydownHandler = (event) => {
+    const keydownHandler = (event) => {
       if (!isOpenFn()) return;
 
       const target = event.target;
@@ -174,14 +172,14 @@ export function createModalInputLock({
       event.preventDefault();
     };
 
-    focusInHandler = (event) => {
+    const focusInHandler = (event) => {
       if (!isOpenFn()) return;
       const target = event.target;
       if (containsTarget(target)) return;
       focusFirstElement(getContainerFn());
     };
 
-    wheelHandler = (event) => {
+    const wheelHandler = (event) => {
       if (!isOpenFn()) return;
       const target = event.target;
       if ((event.ctrlKey || event.metaKey) && event.cancelable) {
@@ -195,7 +193,7 @@ export function createModalInputLock({
       event.stopPropagation();
     };
 
-    touchMoveHandler = (event) => {
+    const touchMoveHandler = (event) => {
       if (!isOpenFn()) return;
       const target = event.target;
       if (containsTarget(target)) {
@@ -206,27 +204,28 @@ export function createModalInputLock({
       event.stopPropagation();
     };
 
-    if (preventGestureStart) {
-      gestureHandler = (event) => {
-        if (!isOpenFn()) return;
-        if (event.cancelable) event.preventDefault();
-      };
-    }
-
-    document.addEventListener('keydown', keydownHandler, true);
-    document.addEventListener('focusin', focusInHandler, true);
+    document.addEventListener('keydown', keydownHandler, { capture: true, signal });
+    document.addEventListener('focusin', focusInHandler, { capture: true, signal });
     document.addEventListener('wheel', wheelHandler, {
       capture: true,
       passive: false,
+      signal
     });
     document.addEventListener('touchmove', touchMoveHandler, {
       capture: true,
       passive: false,
+      signal
     });
-    if (gestureHandler) {
+
+    if (preventGestureStart) {
+      const gestureHandler = (event) => {
+        if (!isOpenFn()) return;
+        if (event.cancelable) event.preventDefault();
+      };
       document.addEventListener('gesturestart', gestureHandler, {
         capture: true,
         passive: false,
+        signal
       });
     }
 
@@ -237,29 +236,9 @@ export function createModalInputLock({
     if (!active) return;
     active = false;
 
-    if (keydownHandler) {
-      document.removeEventListener('keydown', keydownHandler, true);
-      keydownHandler = null;
-    }
-    if (focusInHandler) {
-      document.removeEventListener('focusin', focusInHandler, true);
-      focusInHandler = null;
-    }
-    if (wheelHandler) {
-      document.removeEventListener('wheel', wheelHandler, { capture: true });
-      wheelHandler = null;
-    }
-    if (touchMoveHandler) {
-      document.removeEventListener('touchmove', touchMoveHandler, {
-        capture: true,
-      });
-      touchMoveHandler = null;
-    }
-    if (gestureHandler) {
-      document.removeEventListener('gesturestart', gestureHandler, {
-        capture: true,
-      });
-      gestureHandler = null;
+    if (controller) {
+      controller.abort();
+      controller = null;
     }
 
     if (onDeactivateFn) onDeactivateFn();

@@ -150,6 +150,13 @@ export class ReadcastPlayer {
         return (sessions || []).filter((session) => session && session.audioId);
       },
       onRequestUpload: () => this.openFilePicker({ mode: 'library' }),
+      onDeleteSession: async (sessionId) => {
+          if (this.stateManager.getState().currentMediaId === sessionId) {
+              // If deleting current playing, unload it
+              this.loadAudio(null, true, '', null);
+          }
+          await this.fileManager.deleteSession(sessionId);
+      }
     });
 
     this.topRailTooltipEl = null;
@@ -244,6 +251,9 @@ export class ReadcastPlayer {
       subtitlesLoaded: false,
       attemptedNavWithoutSubtitles: false,
     });
+    if (this.selectionManager) {
+        this.selectionManager.clearAllHighlights();
+    }
     if (
       this.uiManager &&
       this.uiManager.elements &&
@@ -880,18 +890,13 @@ export class ReadcastPlayer {
     window.addEventListener('dragover', preventWindowFileDrop);
     window.addEventListener('drop', preventWindowFileDrop);
 
-    const handleFileSelection = async (files, { mode = 'play' } = {}) => {
-      const isLibraryMode = mode === 'library';
-      const {
-        audioFile,
-        subtitleFile,
-        invalidFiles,
-        errorType,
-        sessionId,
-        createdSession,
-      } = await this.fileManager.handleFiles(files, {
-        loadToUi: !isLibraryMode,
-      });
+        const handleFileSelection = async (files, { mode = 'play' } = {}) => {
+            const isLibraryMode = mode === 'library';
+            const { currentMediaId } = this.stateManager.getState();
+            const { audioFile, subtitleFile, invalidFiles, errorType, sessionId, createdSession } = await this.fileManager.handleFiles(files, {
+                loadToUi: !isLibraryMode,
+                targetSessionId: isLibraryMode ? null : currentMediaId
+            });
 
       if (isLibraryMode) {
         if (

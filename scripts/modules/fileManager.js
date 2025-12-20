@@ -186,9 +186,36 @@ class FileManager {
     }
   }
 
+  async createThumbnail(blob) {
+      if (!blob) return null;
+      try {
+          const bitmap = await createImageBitmap(blob);
+          const maxDim = 256;
+          let width = bitmap.width;
+          let height = bitmap.height;
+          
+          if (width > maxDim || height > maxDim) {
+              const ratio = Math.min(maxDim / width, maxDim / height);
+              width = Math.round(width * ratio);
+              height = Math.round(height * ratio);
+          }
+
+          const canvas = new OffscreenCanvas(width, height);
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(bitmap, 0, 0, width, height);
+          
+          const thumbnail = await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.8 });
+          bitmap.close();
+          return thumbnail;
+      } catch (e) {
+          console.warn('Thumbnail generation failed', e);
+          return blob; // Fallback to original if compression fails
+      }
+  }
+
   // --- Main Logic ---
 
-  async handleFiles(fileList, { loadToUi = true } = {}) {
+  async handleFiles(fileList, { loadToUi = true, targetSessionId = null } = {}) {
     const files = Array.from(fileList || []);
     let audioFile = null;
     let subtitleFile = null;
@@ -245,29 +272,32 @@ class FileManager {
       }
     }
 
-    let sessionId = null;
+    let sessionId = targetSessionId;
     let createdSession = null;
 
     // SCENARIO: Audio + Maybe Subtitle
     if (audioFile) {
-      sessionId = this.generateId();
-      const audioId = this.generateId();
-      let subtitleId = null;
-      let subtitleContent = null;
-
       // 1. Prepare Audio Data
       let hasHeader = true;
       let coverBlob = null;
+      let thumbnailBlob = null;
       try {
-        [hasHeader, coverBlob] = await Promise.all([
+        const [headerCheck, extractedCover] = await Promise.all([
           this.checkMp3Header(audioFile),
           this.extractCoverArt(audioFile),
         ]);
+        hasHeader = headerCheck;
+        coverBlob = extractedCover;
+        if (coverBlob) {
+            thumbnailBlob = await this.createThumbnail(coverBlob);
+        }
       } catch (e) {
         console.warn('Metadata extraction failed', e);
       }
 
       // 2. Prepare Subtitle Data (if present)
+      let subtitleId = null;
+      let subtitleContent = null;
       if (subtitleFile) {
         try {
           subtitleContent = await subtitleFile.text();
@@ -280,37 +310,58 @@ class FileManager {
         }
       }
 
-      // 3. Save Audio
-      await DB.addAudio(audioId, audioFile, {
-        hasHeader,
-        cover: coverBlob,
-        name: audioFile.name,
-      });
+      if (targetSessionId) {
+          // UPDATE Existing Session
+          await this.updateAudioInSession(targetSessionId, audioFile, { hasHeader, coverBlob: thumbnailBlob || coverBlob });
+          // If simultaneous subtitle drop, attach it too
+          if (subtitleId) {
+             await DB.updateSession(targetSessionId, {
+                 subtitleId,
+                 subtitleName: subtitleFile.name,
+                 subtitleSize: subtitleFile.size
+             });
+          }
+      } else {
+          // CREATE New Session
+          sessionId = this.generateId();
+          const audioId = this.generateId();
 
-      // 4. Create Session
-      createdSession = {
-        id: sessionId,
-        title: audioFile.name,
-        audioId,
-        subtitleId,
-        audioName: audioFile.name,
-        subtitleName: subtitleFile ? subtitleFile.name : null,
-        duration: 0,
-        progress: 0,
-      };
+          // 3. Save Audio
+          await DB.addAudio(audioId, audioFile, {
+            hasHeader,
+            cover: thumbnailBlob || coverBlob, 
+            name: audioFile.name,
+          });
 
-      await DB.createSession(sessionId, createdSession);
+          // 4. Create Session
+          createdSession = {
+            id: sessionId,
+            title: audioFile.name,
+            audioId,
+            subtitleId,
+            audioName: audioFile.name,
+            subtitleName: subtitleFile ? subtitleFile.name : null,
+            audioSize: audioFile.size,
+            subtitleSize: subtitleFile ? subtitleFile.size : 0,
+            duration: 0,
+            progress: 0,
+            cover: thumbnailBlob || coverBlob
+          };
+
+          await DB.createSession(sessionId, createdSession);
+      }
 
       // 5. Load (optional)
       if (loadToUi && this.onAudioLoad) {
-        const coverUrl = coverBlob ? URL.createObjectURL(coverBlob) : '';
+        // Prefer thumbnail for UI display to save memory, though original blob works too
+        const displayBlob = thumbnailBlob || coverBlob;
+        const coverUrl = displayBlob ? URL.createObjectURL(displayBlob) : '';
         this.onAudioLoad(audioFile, hasHeader, coverUrl, sessionId); // Pass SessionID!
       }
     }
     // SCENARIO: Only Subtitle (New Session)
-    // NOTE: app.js will handle "attach to existing session" logic.
+    // NOTE: app.js will handle "attach to existing session" logic if audioFile is null.
     // If app.js decides to create a NEW session for this subtitle, it calls createSubtitleSession.
-    // So here we just return the file.
 
     return {
       audioFile,
@@ -322,10 +373,28 @@ class FileManager {
     };
   }
 
+  async updateAudioInSession(sessionId, audioFile, { hasHeader, coverBlob }) {
+      const audioId = this.generateId();
+      await DB.addAudio(audioId, audioFile, {
+          hasHeader,
+          cover: coverBlob,
+          name: audioFile.name
+      });
+      await DB.updateSession(sessionId, {
+          audioId,
+          audioName: audioFile.name,
+          audioSize: audioFile.size,
+          duration: 0,
+          progress: 0,
+          cover: coverBlob
+      });
+  }
+
   // Create a session for a standalone subtitle
   async createSubtitleSession(filename, content) {
     const sessionId = this.generateId();
     const subtitleId = this.generateId();
+    const subtitleSize = new Blob([content]).size;
 
     try {
       await DB.addSubtitle(subtitleId, content, { name: filename });
@@ -334,6 +403,7 @@ class FileManager {
         audioId: null,
         subtitleId: subtitleId,
         subtitleName: filename,
+        subtitleSize,
       });
       return sessionId;
     } catch (e) {
@@ -346,11 +416,13 @@ class FileManager {
   async attachSubtitleToSession(sessionId, filename, content) {
     if (!sessionId) return;
     const subtitleId = this.generateId();
+    const subtitleSize = new Blob([content]).size;
     try {
       await DB.addSubtitle(subtitleId, content, { name: filename });
       await DB.updateSession(sessionId, {
         subtitleId,
         subtitleName: filename,
+        subtitleSize,
       });
     } catch (e) {
       console.warn('Failed to attach subtitle', e);
@@ -396,6 +468,20 @@ class FileManager {
       console.error('Failed to load recent session:', err);
     }
     return null;
+  }
+
+  async deleteSession(sessionId) {
+      if (!sessionId) return;
+      try {
+          const session = await DB.getSession(sessionId);
+          if (session) {
+              if (session.audioId) await DB.deleteAudio(session.audioId);
+              if (session.subtitleId) await DB.deleteSubtitle(session.subtitleId);
+          }
+          await DB.deleteSession(sessionId);
+      } catch (err) {
+          console.warn('Failed to delete session', err);
+      }
   }
 }
 

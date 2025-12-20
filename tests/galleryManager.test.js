@@ -1,5 +1,6 @@
 /** @vitest-environment jsdom */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import 'fake-indexeddb/auto';
 import SourcePickerModal, {
   computeSelectWidthPx,
 } from '../scripts/modules/sourcePickerModal.js';
@@ -121,7 +122,7 @@ describe('SourcePickerModal (favorites)', () => {
     localStorage.clear();
   });
 
-  it('renders an empty favorites view', () => {
+  it('renders an empty favorites view', async () => {
     const manager = new SourcePickerModal({ t: (key) => key });
     manager.ensureRecommendedLoaded = () => {};
     manager.openFavorites();
@@ -129,6 +130,8 @@ describe('SourcePickerModal (favorites)', () => {
     expect(
       manager.modal.querySelector('.gallery-toolbar').hasAttribute('hidden')
     ).toBe(true);
+    await manager.ensureFavoritesLoaded();
+    manager.render();
     expect(manager.contentEl.textContent).toContain('No favorites');
 
     const tabs = manager.modal.querySelector('.gallery-tabs');
@@ -239,6 +242,44 @@ describe('SourcePickerModal (podcast episode interactions)', () => {
     playBtn.click();
     expect(onPlayEpisode).toHaveBeenCalledTimes(1);
     expect(manager.isOpen()).toBe(false);
+  });
+
+  it('paginates podcast episode list (8 initial, +4 on scroll-to-bottom)', () => {
+    const manager = createManager();
+    manager.ensureRecommendedLoaded = () => {};
+
+    manager.open();
+    manager.view = 'podcast';
+    manager.selectedPodcast = {
+      title: 'Test Podcast',
+      feedUrl: 'https://example.com/feed.xml',
+    };
+    manager.episodes = Array.from({ length: 12 }, (_, idx) => ({
+      title: `Ep ${idx + 1}`,
+      audioUrl: `https://example.com/${idx + 1}.mp3`,
+      pubDate: '2024-01-01',
+      description: `Desc ${idx + 1}`,
+    }));
+    manager.render();
+
+    expect(manager.contentEl.querySelectorAll('.gallery-episode-row')).toHaveLength(
+      8
+    );
+
+    Object.defineProperty(manager.contentEl, 'scrollHeight', {
+      value: 1000,
+      configurable: true,
+    });
+    Object.defineProperty(manager.contentEl, 'clientHeight', {
+      value: 100,
+      configurable: true,
+    });
+    manager.contentEl.scrollTop = 900;
+    manager.contentEl.dispatchEvent(new Event('scroll'));
+
+    expect(manager.contentEl.querySelectorAll('.gallery-episode-row')).toHaveLength(
+      12
+    );
   });
 });
 

@@ -34,6 +34,7 @@ export default class SelectionManager {
         this.lookupBackdrop = null;
         this.lookupPopover = null;
         this.lookupAbortController = null;
+        this.lookupEventsController = null;
         this.lookupAnchorRect = null;
         this.lookupTitleEl = null;
         this.lookupBodyEl = null;
@@ -52,6 +53,13 @@ export default class SelectionManager {
         this.createOverlayContainer();
         this.createWordHoverOverlayContainer();
         this.setupLookupPopover();
+
+        if (typeof Highlight !== 'undefined' && CSS.highlights) {
+            this.lookupHighlight = new Highlight();
+            CSS.highlights.set('lookup-highlight', this.lookupHighlight);
+        } else {
+            this.lookupHighlight = null;
+        }
     }
 
     createOverlayContainer() {
@@ -510,6 +518,12 @@ export default class SelectionManager {
 
     isLookupModalOpen() {
         return Boolean(this.lookupModalActive && this.lookupPopover && !this.lookupPopover.hasAttribute('hidden'));
+    }
+
+    clearAllHighlights() {
+        if (this.lookupHighlight) {
+            this.lookupHighlight.clear();
+        }
     }
 
     updateTranslations(t) {
@@ -986,79 +1000,52 @@ export default class SelectionManager {
     renderSubtitleText(textEl, rawText) {
         if (!textEl) return;
         const text = typeof rawText === 'string' ? rawText : String(rawText || '');
+        textEl.textContent = text;
 
-        if (!text) {
-            textEl.textContent = '';
-            return;
-        }
-        if (this.dictCache.size === 0) {
-            textEl.textContent = text;
-            return;
-        }
+        if (!this.lookupHighlight || this.dictCache.size === 0 || !text) return;
 
-        const fragment = document.createDocumentFragment();
+        // We need the text node to create a range
+        const textNode = textEl.firstChild;
+        if (!textNode || textNode.nodeType !== Node.TEXT_NODE) return;
+
         SUBTITLE_WORD_PATTERN.lastIndex = 0;
-        let cursor = 0;
         let match;
-        let hasKnown = false;
-
         while ((match = SUBTITLE_WORD_PATTERN.exec(text)) !== null) {
-            const start = match.index;
             const word = match[0];
             const wordKey = word.toLowerCase();
-
-            if (!this.dictCache.has(wordKey)) continue;
-            hasKnown = true;
-
-            if (start > cursor) {
-                fragment.appendChild(document.createTextNode(text.slice(cursor, start)));
+            if (this.dictCache.has(wordKey)) {
+                const range = document.createRange();
+                range.setStart(textNode, match.index);
+                range.setEnd(textNode, match.index + word.length);
+                this.lookupHighlight.add(range);
             }
-            const span = document.createElement('span');
-            span.className = 'subtitle-word lookup-known';
-            span.dataset.word = wordKey;
-            span.textContent = word;
-            fragment.appendChild(span);
-
-            cursor = start + word.length;
         }
-
-        if (!hasKnown) {
-            textEl.textContent = text;
-            return;
-        }
-
-        if (cursor < text.length) {
-            fragment.appendChild(document.createTextNode(text.slice(cursor)));
-        }
-
-        textEl.innerHTML = '';
-        textEl.appendChild(fragment);
     }
 
     markCachedWordInTranscript(wordKey) {
         const key = (wordKey || '').trim().toLowerCase();
         if (!key) return;
+        if (!this.lookupHighlight) return;
 
-        document.querySelectorAll(`.subtitle-word[data-word="${key}"]`).forEach((node) => {
-            node.classList.add('lookup-known');
-        });
+        // Incremental update: scan existing DOM for just this new word
+        document.querySelectorAll('.subtitle-text').forEach((textEl) => {
+            const rawText = textEl.textContent || '';
+            // Quick check
+            if (!rawText.toLowerCase().includes(key)) return;
 
-        const containsToken = (value) => {
-            if (!value) return false;
-            if (!value.toLowerCase().includes(key)) return false;
+            const textNode = textEl.firstChild;
+            if (!textNode || textNode.nodeType !== Node.TEXT_NODE) return;
+
             SUBTITLE_WORD_PATTERN.lastIndex = 0;
             let match;
-            while ((match = SUBTITLE_WORD_PATTERN.exec(value)) !== null) {
-                if (match[0].toLowerCase() === key) return true;
+            while ((match = SUBTITLE_WORD_PATTERN.exec(rawText)) !== null) {
+                if (match[0].toLowerCase() === key) {
+                    const range = document.createRange();
+                    range.setStart(textNode, match.index);
+                    range.setEnd(textNode, match.index + match[0].length);
+                    this.lookupHighlight.add(range);
+                }
             }
-            return false;
-        };
-
-        document.querySelectorAll('.subtitle-text').forEach((textEl) => {
-            if (!textEl || textEl.querySelector(`.subtitle-word[data-word="${key}"]`)) return;
-            const rawText = textEl.textContent || '';
-            if (!containsToken(rawText)) return;
-            this.renderSubtitleText(textEl, rawText);
         });
     }
 
@@ -1138,7 +1125,10 @@ export default class SelectionManager {
         this.lockPageScroll();
         this.focusLookupPopover();
 
-        this.lookupKeydownHandler = (event) => {
+        this.lookupEventsController = new AbortController();
+        const { signal } = this.lookupEventsController;
+
+        const keydownHandler = (event) => {
             if (!this.lookupPopover || this.lookupPopover.hasAttribute('hidden')) return;
             const key = event.key;
             const code = event.code;
@@ -1167,14 +1157,14 @@ export default class SelectionManager {
             }
         };
 
-        this.lookupFocusInHandler = (event) => {
+        const focusInHandler = (event) => {
             if (!this.lookupPopover || this.lookupPopover.hasAttribute('hidden')) return;
             const target = event.target;
             if (target && this.lookupPopover.contains(target)) return;
             this.focusLookupPopover();
         };
 
-        this.lookupWheelHandler = (event) => {
+        const wheelHandler = (event) => {
             if (!this.lookupPopover || this.lookupPopover.hasAttribute('hidden')) return;
             const target = event.target;
             if (target && this.lookupPopover.contains(target)) return;
@@ -1182,7 +1172,7 @@ export default class SelectionManager {
             event.preventDefault();
         };
 
-        this.lookupTouchMoveHandler = (event) => {
+        const touchMoveHandler = (event) => {
             if (!this.lookupPopover || this.lookupPopover.hasAttribute('hidden')) return;
             const target = event.target;
             if (target && this.lookupPopover.contains(target)) return;
@@ -1190,10 +1180,10 @@ export default class SelectionManager {
             event.preventDefault();
         };
 
-        document.addEventListener('keydown', this.lookupKeydownHandler, true);
-        document.addEventListener('focusin', this.lookupFocusInHandler, true);
-        document.addEventListener('wheel', this.lookupWheelHandler, { capture: true, passive: false });
-        document.addEventListener('touchmove', this.lookupTouchMoveHandler, { capture: true, passive: false });
+        document.addEventListener('keydown', keydownHandler, { capture: true, signal });
+        document.addEventListener('focusin', focusInHandler, { capture: true, signal });
+        document.addEventListener('wheel', wheelHandler, { capture: true, passive: false, signal });
+        document.addEventListener('touchmove', touchMoveHandler, { capture: true, passive: false, signal });
     }
 
     deactivateLookupModal() {
@@ -1205,21 +1195,9 @@ export default class SelectionManager {
             this.lookupBackdrop.setAttribute('hidden', 'true');
         }
 
-        if (this.lookupKeydownHandler) {
-            document.removeEventListener('keydown', this.lookupKeydownHandler, true);
-            this.lookupKeydownHandler = null;
-        }
-        if (this.lookupFocusInHandler) {
-            document.removeEventListener('focusin', this.lookupFocusInHandler, true);
-            this.lookupFocusInHandler = null;
-        }
-        if (this.lookupWheelHandler) {
-            document.removeEventListener('wheel', this.lookupWheelHandler, { capture: true });
-            this.lookupWheelHandler = null;
-        }
-        if (this.lookupTouchMoveHandler) {
-            document.removeEventListener('touchmove', this.lookupTouchMoveHandler, { capture: true });
-            this.lookupTouchMoveHandler = null;
+        if (this.lookupEventsController) {
+            this.lookupEventsController.abort();
+            this.lookupEventsController = null;
         }
 
         this.unlockPageScroll();
