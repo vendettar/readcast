@@ -1,0 +1,20 @@
+/* src/components/Tooltip/Tooltip.css */
+.top-rail-tooltip {
+    position: fixed;
+    z-index: 9999;
+    padding: 6px 10px;
+    font-size: 13px;
+    color: var(--color-text);
+    background: var(--color-panel);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    white-space: nowrap;
+}
+
+.top-rail-tooltip.visible {
+    opacity: 1;
+}

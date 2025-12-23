@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Readcast</title>
+    <link rel="icon" type="image/svg+xml" href="assets/readcast.svg" />
+    <link rel="alternate icon" type="image/png" href="assets/readcast.png" />
+    <link rel="stylesheet" href="styles/player.css" />
+  </head>
+  <body class="theme-mode-system state-empty">
+    <header class="top-bar">
+      <div class="logo-mark panel-surface">
+        <img src="assets/readcast.svg" alt="Readcast logo" class="logo-icon" />
+        <span class="logo-text">Readcast</span>
+      </div>
+    </header>
+    <aside class="top-right-rail" aria-label="Quick actions">
+      <div class="quick-actions">
+        <div class="zoom-direct panel-surface" style="display: none">
+          <span id="zoomValueText" class="zoom-value">100%</span>
+          <button id="zoomOutBtn" class="zoom-btn" aria-label="Zoom Out">
+            −
+          </button>
+          <button id="zoomInBtn" class="zoom-btn" aria-label="Zoom In">
+            +
+          </button>
+          <button
+            id="zoomResetBtn"
+            class="zoom-reset-btn"
+            aria-label="Reset Zoom"
+            data-i18n="resetZoom"
+          >
+            Reset
+          </button>
+        </div>
+        <div class="action" id="languageAction">
+          <button
+            class="action-button panel-surface"
+            aria-haspopup="true"
+            aria-expanded="false"
+            aria-label="Language"
+          >
+            <span
+              class="action-icon mask-icon icon-language"
+              aria-hidden="true"
+            ></span>
+          </button>
+          <div
+            class="action-dropdown panel-surface"
+            id="languageDropdown"
+          ></div>
+        </div>
+        <div class="action" id="themeAction">
+          <button
+            class="action-button panel-surface"
+            aria-haspopup="true"
+            aria-expanded="false"
+            aria-label="Theme"
+            data-custom-click="true"
+          >
+            <span
+              class="action-icon mask-icon icon-light-mode"
+              id="themeToggleIcon"
+              aria-hidden="true"
+            ></span>
+          </button>
+          <div class="action-dropdown panel-surface" id="themeDropdown"></div>
+        </div>
+      </div>
+      <div class="top-entry-stack" aria-label="Sources">
+        <button
+          id="openGalleryBtn"
+          class="top-entry-btn panel-surface"
+          type="button"
+          aria-haspopup="dialog"
+          data-tooltip-key="navGallery"
+        >
+            <span
+              class="top-entry-icon mask-icon icon-gallery"
+              aria-hidden="true"
+            ></span>
+          <span class="sr-only" data-i18n="navGallery">Gallery</span>
+        </button>
+        <button
+          id="openLocalFilesBtn"
+          class="top-entry-btn panel-surface"
+          type="button"
+          aria-haspopup="dialog"
+          data-tooltip-key="navLocalFiles"
+        >
+            <span
+              class="top-entry-icon mask-icon icon-folder"
+              aria-hidden="true"
+            ></span>
+          <span class="sr-only" data-i18n="navLocalFiles">Local Files</span>
+        </button>
+      </div>
+    </aside>
+
+    <main id="appMain">
+      <div class="cover-wrapper">
+        <div id="coverCard" class="floating-card panel-surface cover-card">
+          <img id="coverImage" alt="Cover" class="cover-image" />
+        </div>
+      </div>
+
+      <div class="empty-panel">
+        <div class="combined-card">
+          <div class="warning-container">
+            <div class="warnings-list"></div>
+          </div>
+          <p class="intro-lead" data-i18n="introLead">
+            Listen to podcasts, read the text.
+          </p>
+          <div class="drop-wrapper drop-wrapper-empty">
+            <div
+              id="dropZoneEmpty"
+              class="file-drop-zone file-drop-zone--empty"
+            >
+              <p class="drop-title">
+                <span class="drop-title-text" data-i18n="dropTitleIntro"
+                  >Drag & drop or click to add MP3 and SRT files</span
+                >
+              </p>
+              <div class="media-support">
+                <label class="media-check">
+                  <input
+                    type="checkbox"
+                    id="audioStatusEmpty"
+                    name="audioStatusEmpty"
+                    class="audio-status"
+                    disabled
+                  />
+                  <span data-i18n="formatMp3">MP3</span>
+                </label>
+                <label class="media-check">
+                  <input
+                    type="checkbox"
+                    id="subtitleStatusEmpty"
+                    name="subtitleStatusEmpty"
+                    class="subtitle-status"
+                    disabled
+                  />
+                  <span data-i18n="formatSrt">SRT</span>
+                </label>
+              </div>
+            </div>
+          </div>
+          <p class="intro-meta intro-meta-bottom" data-i18n="introPrivacy">
+            All your data is saved locally in your browser.
+          </p>
+        </div>
+      </div>
+
+      <div class="floating-panel">
+        <div class="warning-container">
+          <div class="warnings-list"></div>
+        </div>
+        <div
+          id="dropZoneFloating"
+          class="file-drop-zone file-drop-zone--floating floating-card panel-surface"
+        >
+          <p class="drop-title">
+            <span class="drop-title-text" data-i18n="dropTitleShort"
+              >Drag & drop or click to add files</span
+            >
+          </p>
+          <div class="media-support">
+            <label class="media-check">
+              <input
+                type="checkbox"
+                id="audioStatusFloating"
+                name="audioStatusFloating"
+                class="audio-status"
+                disabled
+              />
+              <span data-i18n="formatMp3">MP3</span>
+            </label>
+            <label class="media-check">
+              <input
+                type="checkbox"
+                id="subtitleStatusFloating"
+                name="subtitleStatusFloating"
+                class="subtitle-status"
+                disabled
+              />
+              <span data-i18n="formatSrt">SRT</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="floating-controls">
+          <button id="btnPrev" class="circle-btn" tabindex="-1">
+            <span class="control-icon icon-prev" aria-hidden="true"></span>
+            <span class="sr-only" data-i18n="btnPrev">Previous line</span>
+          </button>
+          <button id="btnPlay" class="circle-btn" tabindex="-1">
+            <span
+              class="control-icon play-icon icon-play"
+              aria-hidden="true"
+            ></span>
+            <span class="sr-only" data-i18n="btnPlay">Play / Pause</span>
+          </button>
+          <button id="btnNext" class="circle-btn" tabindex="-1">
+            <span class="control-icon icon-next" aria-hidden="true"></span>
+            <span class="sr-only" data-i18n="btnNext">Next line</span>
+          </button>
+        </div>
+        <div class="floating-card panel-surface progress-card">
+          <div class="progress-row">
+            <span id="progressCurrent" class="time-label">0:00</span>
+            <input
+              id="progressBar"
+              class="progress-bar"
+              type="range"
+              min="0"
+              max="0"
+              step="0.01"
+              value="0"
+              aria-label="Progress"
+            />
+          </div>
+        </div>
+      </div>
+
+      <input type="file" id="fileInput" multiple accept=".mp3,.srt" />
+      <audio id="audioPlayer"></audio>
+
+      <div class="fab-dock">
+        <div class="shortcut-fab action" id="shortcutAction">
+          <button
+            class="action-button panel-surface"
+            aria-haspopup="true"
+            aria-expanded="false"
+            aria-label="Shortcuts"
+          >
+            <span
+              class="action-icon mask-icon icon-keyboard"
+              aria-hidden="true"
+            ></span>
+          </button>
+          <div class="action-dropdown panel-surface shortcut-dropdown">
+            <strong data-i18n="shortcutTitle">Shortcuts</strong>
+            <div class="shortcut-row">
+              <span class="keycap" data-i18n="shortcutSpaceKey">Space</span>
+              <span class="shortcut-label" data-i18n="shortcutPlayLabel"
+                >Play / Pause</span
+              >
+            </div>
+            <div class="shortcut-row">
+              <span class="keycap keycap-arrow">
+                <span
+                  class="keycap-icon mask-icon icon-arrow-left"
+                  aria-hidden="true"
+                ></span>
+              </span>
+              <span class="shortcut-label" data-i18n="shortcutPrevLabel"
+                >Previous line</span
+              >
+            </div>
+            <div class="shortcut-row">
+              <span class="keycap keycap-arrow">
+                <span
+                  class="keycap-icon mask-icon icon-arrow-right"
+                  aria-hidden="true"
+                ></span>
+              </span>
+              <span class="shortcut-label" data-i18n="shortcutNextLabel"
+                >Next line</span
+              >
+            </div>
+          </div>
+        </div>
+
+        <div class="qa-fab action" id="qaAction">
+          <button
+            class="action-button panel-surface"
+            aria-haspopup="true"
+            aria-expanded="false"
+            aria-label="Q&A"
+          >
+            <span
+              class="action-icon mask-icon icon-question"
+              aria-hidden="true"
+            ></span>
+          </button>
+          <div class="action-dropdown panel-surface qa-dropdown">
+            <div class="qa-item">
+              <div class="qa-question" data-i18n="qaQuestionReadcast">
+                What is Readcast?
+              </div>
+              <div class="qa-answer" data-i18n="qaAnswerReadcast">
+                Readcast is a lightweight browser player for listening to an
+                .mp3 while reading along with a matching .srt subtitle file.
+                Drop your files in and the page keeps audio and text in sync so
+                you can jump to any line, follow along hands-free, or copy
+                passages for reference.
+              </div>
+            </div>
+            <div class="qa-item">
+              <div class="qa-question" data-i18n="qaQuestionPrivacy">
+                Does Readcast upload my files?
+              </div>
+              <div class="qa-answer" data-i18n="qaAnswerPrivacy">
+                All processing happens in the browser; files are not uploaded
+                anywhere.
+              </div>
+            </div>
+            <div class="qa-item">
+              <div class="qa-question" data-i18n="qaQuestionVbr">
+                Why might seeking be inaccurate for some MP3s?
+              </div>
+              <div class="qa-answer" data-i18n="qaAnswerVbr">
+                Some VBR .mp3 files without proper headers may seek less
+                accurately; uploading an MP3 with a Xing/VBR header can improve
+                jumping precision. You can add the header with: ffmpeg -i
+                input.mp3 -c:a copy -write_xing 1 output.mp3
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-fab action" id="settingsAction">
+          <button
+            class="action-button panel-surface"
+            aria-haspopup="true"
+            aria-expanded="false"
+            aria-label="Settings"
+          >
+            <span
+              class="action-icon mask-icon icon-settings"
+              aria-hidden="true"
+            ></span>
+          </button>
+          <div class="action-dropdown panel-surface" id="settingsDropdown">
+            <!-- Settings content will be rendered here -->
+            <div
+              style="
+                padding: 12px;
+                font-size: 0.8125rem;
+                color: var(--color-muted);
+              "
+            >
+              Settings coming soon...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="transcript-container"></div>
+
+      <template id="subtitle-template">
+        <div class="subtitle-line">
+          <div class="subtitle-time"></div>
+          <div class="subtitle-text"></div>
+        </div>
+      </template>
+
+      <button
+        id="followCurrentBtn"
+        class="follow-current-btn"
+        type="button"
+        aria-label="Go to current"
+      >
+        <svg
+          class="wave-icon"
+          viewBox="0 0 64 24"
+          width="48"
+          height="18"
+          fill="currentColor"
+          aria-hidden="true"
+        >
+          <rect
+            class="wave-bar bar1"
+            x="2"
+            y="11"
+            width="3"
+            height="10"
+            rx="1.5"
+          ></rect>
+          <rect
+            class="wave-bar bar2"
+            x="7"
+            y="6"
+            width="3"
+            height="15"
+            rx="1.5"
+          ></rect>
+          <rect
+            class="wave-bar bar3"
+            x="12"
+            y="9"
+            width="3"
+            height="12"
+            rx="1.5"
+          ></rect>
+          <rect
+            class="wave-bar bar4"
+            x="17"
+            y="12"
+            width="3"
+            height="9"
+            rx="1.5"
+          ></rect>
+          <rect
+            class="wave-bar bar5"
+            x="22"
+            y="8"
+            width="3"
+            height="13"
+            rx="1.5"
+          ></rect>
+          <rect
+            class="wave-bar bar6"
+            x="27"
+            y="5"
+            width="3"
+            height="16"
+            rx="1.5"
+          ></rect>
+          <rect
+            class="wave-bar bar7"
+            x="32"
+            y="10"
+            width="3"
+            height="11"
+            rx="1.5"
+          ></rect>
+          <rect
+            class="wave-bar bar8"
+            x="37"
+            y="13"
+            width="3"
+            height="8"
+            rx="1.5"
+          ></rect>
+          <rect
+            class="wave-bar bar9"
+            x="42"
+            y="7"
+            width="3"
+            height="14"
+            rx="1.5"
+          ></rect>
+          <rect
+            class="wave-bar bar10"
+            x="47"
+            y="11"
+            width="3"
+            height="10"
+            rx="1.5"
+          ></rect>
+          <rect
+            class="wave-bar bar11"
+            x="52"
+            y="6"
+            width="3"
+            height="15"
+            rx="1.5"
+          ></rect>
+          <rect
+            class="wave-bar bar12"
+            x="57"
+            y="9"
+            width="3"
+            height="12"
+            rx="1.5"
+          ></rect>
+        </svg>
+      </button>
+    </main>
+
+    <script src="env.js"></script>
+    <script type="module" src="scripts/app.js"></script>
+  </body>
+</html>

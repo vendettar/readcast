@@ -1,0 +1,44 @@
+import path from "path"
+import { defineConfig, type PluginOption } from 'vite'
+import react from '@vitejs/plugin-react'
+import { createRequire } from 'node:module'
+
+// https://vite.dev/config/
+const require = createRequire(import.meta.url);
+
+// Only enable bundle analysis when ANALYZE=1
+const shouldAnalyze = process.env.ANALYZE === '1';
+
+function getVisualizerPlugin(): PluginOption | null {
+  if (!shouldAnalyze) return null;
+
+  try {
+    const mod = require('rollup-plugin-visualizer') as {
+      visualizer?: (options: Record<string, unknown>) => PluginOption;
+    };
+    if (typeof mod.visualizer !== 'function') return null;
+    return mod.visualizer({
+      filename: 'stats.html',
+      open: true,
+      gzipSize: true,
+      brotliSize: true,
+    });
+  } catch {
+    // Optional dev dependency; skip if not installed.
+    return null;
+  }
+}
+
+const visualizerPlugin = getVisualizerPlugin();
+
+export default defineConfig({
+  plugins: [
+    react(),
+    ...(visualizerPlugin ? [visualizerPlugin] : []),
+  ],
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
+})

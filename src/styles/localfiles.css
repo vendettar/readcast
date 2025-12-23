@@ -1,0 +1,201 @@
+/* =============================================
+   LocalFiles Modal Styles
+   Classes used in LocalFilesModal component
+   ============================================= */
+.localfiles-backdrop {
+    position: fixed;
+    inset: 0;
+    background: var(--gallery-backdrop-dim, rgba(0, 0, 0, 0.5));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: var(--z-modal, 100);
+}
+
+.localfiles-modal {
+    width: min(90vw, 500px);
+    max-height: 80vh;
+    border-radius: var(--radius-lg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: var(--shadow-lg);
+}
+
+.localfiles-nav-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-12);
+    padding: var(--space-16);
+    border-bottom: 1px solid var(--color-border);
+    flex-shrink: 0;
+}
+
+.localfiles-title {
+    font-size: 1rem;
+    font-weight: 700;
+    flex: 1;
+}
+
+.localfiles-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: var(--color-text);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: background-color 0.15s ease;
+}
+
+.localfiles-close:hover {
+    background: var(--color-surface-hover);
+}
+
+.localfiles-nav-icon {
+    width: 18px;
+    height: 18px;
+}
+
+.localfiles-actions {
+    padding: var(--space-12) var(--space-16);
+    border-bottom: 1px solid var(--color-border);
+    flex-shrink: 0;
+}
+
+.localfiles-upload-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-6);
+    padding: var(--space-8) var(--space-16);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    border: 1px solid var(--color-highlight);
+    border-radius: var(--radius-full);
+    background: var(--color-highlight);
+    color: var(--color-bg);
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+}
+
+.localfiles-upload-btn:hover {
+    opacity: 0.9;
+}
+
+.localfiles-content {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 200px;
+}
+
+.localfiles-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    color: var(--color-muted);
+    font-size: 0.875rem;
+}
+
+.localfiles-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.localfiles-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-8);
+    padding: var(--space-12) var(--space-16);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.localfiles-item:last-child {
+    border-bottom: none;
+}
+
+.localfiles-item-main {
+    display: flex;
+    align-items: center;
+    gap: var(--space-12);
+    flex: 1;
+    min-width: 0;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    padding: 0;
+}
+
+.localfiles-item-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-surface-hover);
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
+}
+
+.localfiles-item-icon .mask-icon {
+    width: 20px;
+    height: 20px;
+}
+
+.localfiles-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.localfiles-item-title {
+    font-size: 0.875rem;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.localfiles-item-meta {
+    font-size: 0.75rem;
+    color: var(--color-muted);
+    margin-top: var(--space-2);
+}
+
+.localfiles-item-progress {
+    height: 3px;
+    background: var(--color-border);
+    border-radius: 2px;
+    margin-top: var(--space-6);
+    overflow: hidden;
+}
+
+.localfiles-item-progress-bar {
+    height: 100%;
+    background: var(--color-highlight);
+    border-radius: 2px;
+}
+
+.localfiles-item-delete {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: var(--color-muted);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+}
+
+.localfiles-item-delete:hover {
+    background: rgba(220, 38, 38, 0.1);
+    color: #dc2626;
+}

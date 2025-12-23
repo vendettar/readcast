@@ -1,0 +1,38 @@
+{
+  "name": "readcast",
+  "version": "1.0.0",
+  "description": "Readcast audio+subtitle reader served via a lightweight Node static server.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "format": "prettier --write .",
+    "lint": "eslint ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vendettar/readcast.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/vendettar/readcast/issues"
+  },
+  "homepage": "https://github.com/vendettar/readcast#readme",
+  "dependencies": {
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "eslint": "^9.39.1",
+    "fake-indexeddb": "^6.2.5",
+    "globals": "^16.5.0",
+    "jsdom": "^27.3.0",
+    "prettier": "^3.7.4",
+    "vitest": "^4.0.15"
+  }
+}

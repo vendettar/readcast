@@ -1,0 +1,300 @@
+/* =============================================
+   Gallery Component Styles
+   Classes used in Gallery Modal and related components
+   ============================================= */
+
+/* Podcast View */
+.gallery-podcast-view {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.gallery-podcast-header {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-16);
+    padding: var(--space-16);
+    border-bottom: 1px solid var(--color-border);
+    flex-shrink: 0;
+}
+
+.gallery-back-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: var(--color-text);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: background-color 0.15s ease;
+}
+
+.gallery-back-btn:hover {
+    background: var(--color-surface-hover);
+}
+
+.gallery-podcast-art {
+    width: 100px;
+    height: 100px;
+    border-radius: var(--radius-md);
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.gallery-podcast-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.gallery-podcast-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0 0 var(--space-4);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.gallery-podcast-author {
+    font-size: 0.875rem;
+    color: var(--color-muted);
+    margin-bottom: var(--space-12);
+}
+
+.gallery-subscribe-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-6);
+    padding: var(--space-8) var(--space-16);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    border: 1px solid var(--color-highlight);
+    border-radius: var(--radius-full);
+    background: transparent;
+    color: var(--color-highlight);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.gallery-subscribe-btn:hover {
+    background: var(--color-highlight);
+    color: var(--color-bg);
+}
+
+.gallery-subscribe-btn.is-subscribed {
+    background: var(--color-highlight);
+    color: var(--color-bg);
+}
+
+.gallery-episodes {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-8) 0;
+}
+
+.gallery-episode-container {
+    display: flex;
+    align-items: center;
+    transition: background-color 0.15s ease;
+}
+
+.gallery-episode-container:hover,
+.gallery-episode-container:focus-within {
+    background: var(--color-surface-hover);
+}
+
+.gallery-episode {
+    display: flex;
+    align-items: center;
+    padding: var(--space-12) var(--space-16);
+    cursor: pointer;
+    flex: 1;
+    min-width: 0;
+    border: none;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+}
+
+.gallery-episode:hover {
+    background: transparent;
+}
+
+.gallery-episode-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.gallery-episode-title {
+    font-size: 0.9rem;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.gallery-episode-date {
+    font-size: 0.75rem;
+    color: var(--color-muted);
+    margin-top: var(--space-2);
+}
+
+.gallery-favorite-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: transparent;
+    color: var(--color-muted);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+}
+
+.gallery-favorite-btn:hover {
+    background: var(--color-surface-hover);
+    color: var(--color-highlight);
+}
+
+.gallery-favorite-btn.is-active {
+    color: #f59e0b;
+}
+
+.gallery-load-trigger {
+    height: 40px;
+}
+
+/* Favorites View */
+.gallery-favorites-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-8) 0;
+}
+
+.gallery-favorite-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-12);
+    padding: var(--space-12) var(--space-16);
+    transition: background-color 0.15s ease;
+}
+
+.gallery-favorite-item:hover {
+    background: var(--color-surface-hover);
+}
+
+.gallery-favorite-art {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-sm);
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.gallery-favorite-info {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+    border: none;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    padding: 0;
+}
+
+.gallery-favorite-title {
+    font-size: 0.9rem;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.gallery-favorite-podcast {
+    font-size: 0.75rem;
+    color: var(--color-muted);
+    margin-top: var(--space-2);
+}
+
+.gallery-remove-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: var(--color-muted);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+}
+
+.gallery-remove-btn:hover {
+    background: rgba(220, 38, 38, 0.1);
+    color: #dc2626;
+}
+
+/* =============================================
+   RecommendedView Layout
+   ============================================= */
+.recommended-view {
+    padding: var(--space-8) 0;
+}
+
+.recommended-group {
+    margin-bottom: var(--space-24);
+}
+
+.recommended-group-title {
+    font-size: 1rem;
+    font-weight: 700;
+    padding: var(--space-12) var(--space-16);
+    margin: 0;
+    color: var(--color-text);
+}
+
+.recommended-group-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: var(--space-12);
+    padding: 0 var(--space-16);
+}
+
+.recommended-loading-more {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-16);
+    color: var(--color-muted);
+    font-size: 0.875rem;
+}
+
+.recommended-load-sentinel {
+    height: 40px;
+}
+
+.recommended-end-divider {
+    height: 1px;
+    background: var(--color-border);
+    margin: var(--space-16) var(--space-16) 0;
+}
+
+.recommended-empty-divider {
+    height: 1px;
+    background: var(--color-border);
+    margin: var(--space-16) var(--space-16) 0;
+}

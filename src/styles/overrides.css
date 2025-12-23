@@ -1,0 +1,293 @@
+/* ==============================================
+   OVERRIDES FOR REACT VERSION
+   Must be imported AFTER original.css
+   ============================================== */
+
+/* =============================================
+   ACTION HOVER - Show dropdown on hover
+   Works for FAB dock, top-right-rail, etc.
+   ============================================= */
+
+/* Fix: Enable pointer-events on the bridge pseudo-element when hovering */
+.action:hover::after {
+    pointer-events: auto !important;
+}
+
+/* Show dropdown on hover - covers button, bridge, and dropdown itself */
+.action:hover .action-dropdown,
+.action-dropdown:hover {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    transform: translateY(0) !important;
+}
+
+/* Keep dropdown visible when hovering on the dropdown itself */
+.action:has(.action-dropdown:hover) .action-dropdown {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    transform: translateY(0) !important;
+}
+
+/* =============================================
+   Icon Size and Color Fixes
+   ============================================= */
+.mask-icon {
+    display: inline-block;
+    background-color: currentColor;
+    mask-position: center;
+    mask-repeat: no-repeat;
+    mask-size: contain;
+    -webkit-mask-position: center;
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+}
+
+/* Action icons in FAB buttons */
+.action-icon.mask-icon {
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+}
+
+/* Top entry icons (Gallery, Folder, Language, Theme) */
+.top-entry-icon.mask-icon {
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+}
+
+/* Keycap arrow icons */
+.keycap-icon.mask-icon {
+    width: 0.85rem !important;
+    height: 0.85rem !important;
+}
+
+/* Gallery/Localfiles close icons */
+.gallery-nav-icon.mask-icon,
+.localfiles-nav-icon.mask-icon {
+    width: 1rem !important;
+    height: 1rem !important;
+}
+
+/* Control icons (play/pause/prev/next) - inherits from .mask-icon */
+.control-icon {
+    width: 1.5rem !important;
+    height: 1.5rem !important;
+}
+
+/* =============================================
+   Icon Mask Image Paths
+   ============================================= */
+.icon-prev {
+    mask-image: url('../assets/keyboard_arrow_up.svg');
+    -webkit-mask-image: url('../assets/keyboard_arrow_up.svg');
+}
+
+.icon-next {
+    mask-image: url('../assets/keyboard_arrow_down.svg');
+    -webkit-mask-image: url('../assets/keyboard_arrow_down.svg');
+}
+
+.icon-play {
+    mask-image: url('../assets/play.svg');
+    -webkit-mask-image: url('../assets/play.svg');
+}
+
+.icon-play-full {
+    mask-image: url('../assets/play_full.svg');
+    -webkit-mask-image: url('../assets/play_full.svg');
+}
+
+.icon-pause {
+    mask-image: url('../assets/pause.svg');
+    -webkit-mask-image: url('../assets/pause.svg');
+}
+
+.icon-pause-full {
+    mask-image: url('../assets/pause_full.svg');
+    -webkit-mask-image: url('../assets/pause_full.svg');
+}
+
+.icon-prev-full {
+    mask-image: url('../assets/prev_full.svg');
+    -webkit-mask-image: url('../assets/prev_full.svg');
+}
+
+.icon-next-full {
+    mask-image: url('../assets/next_full.svg');
+    -webkit-mask-image: url('../assets/next_full.svg');
+}
+
+.icon-close {
+    mask-image: url('../assets/close.svg');
+    -webkit-mask-image: url('../assets/close.svg');
+}
+
+.icon-check {
+    mask-image: url('../assets/check.svg');
+    -webkit-mask-image: url('../assets/check.svg');
+}
+
+.icon-arrow-up {
+    mask-image: url('../assets/keyboard_arrow_up.svg');
+    -webkit-mask-image: url('../assets/keyboard_arrow_up.svg');
+}
+
+.icon-arrow-down {
+    mask-image: url('../assets/keyboard_arrow_down.svg');
+    -webkit-mask-image: url('../assets/keyboard_arrow_down.svg');
+}
+
+.icon-arrow-back {
+    mask-image: url('../assets/arrow_back.svg');
+    -webkit-mask-image: url('../assets/arrow_back.svg');
+}
+
+.icon-settings {
+    mask-image: url('../assets/settings.svg');
+    -webkit-mask-image: url('../assets/settings.svg');
+}
+
+.icon-language {
+    mask-image: url('../assets/language.svg');
+    -webkit-mask-image: url('../assets/language.svg');
+}
+
+.icon-folder {
+    mask-image: url('../assets/folder.svg');
+    -webkit-mask-image: url('../assets/folder.svg');
+}
+
+.icon-audio {
+    mask-image: url('../assets/audio.svg');
+    -webkit-mask-image: url('../assets/audio.svg');
+}
+
+.icon-subtitle {
+    mask-image: url('../assets/subtitle.svg');
+    -webkit-mask-image: url('../assets/subtitle.svg');
+}
+
+.icon-theme {
+    mask-image: url('../assets/theme.svg');
+    -webkit-mask-image: url('../assets/theme.svg');
+}
+
+.icon-heart {
+    mask-image: url('../assets/heart.svg');
+    -webkit-mask-image: url('../assets/heart.svg');
+}
+
+.icon-heart-full {
+    mask-image: url('../assets/heart_full.svg');
+    -webkit-mask-image: url('../assets/heart_full.svg');
+}
+
+.icon-star {
+    mask-image: url('../assets/star.svg');
+    -webkit-mask-image: url('../assets/star.svg');
+}
+
+.icon-star-full {
+    mask-image: url('../assets/star_full.svg');
+    -webkit-mask-image: url('../assets/star_full.svg');
+}
+
+.icon-delete {
+    mask-image: url('../assets/delete.svg');
+    -webkit-mask-image: url('../assets/delete.svg');
+}
+
+.icon-search {
+    mask-image: url('../assets/search.svg');
+    -webkit-mask-image: url('../assets/search.svg');
+}
+
+.icon-open-in-new {
+    mask-image: url('../assets/open_in_new.svg');
+    -webkit-mask-image: url('../assets/open_in_new.svg');
+}
+
+.icon-shuffle {
+    mask-image: url('../assets/shuffle.svg');
+    -webkit-mask-image: url('../assets/shuffle.svg');
+}
+
+.icon-follow {
+    mask-image: url('../assets/follow.svg');
+    -webkit-mask-image: url('../assets/follow.svg');
+}
+
+.icon-zoom-in {
+    mask-image: url('../assets/zoom_in.svg');
+    -webkit-mask-image: url('../assets/zoom_in.svg');
+}
+
+.icon-zoom-out {
+    mask-image: url('../assets/zoom_out.svg');
+    -webkit-mask-image: url('../assets/zoom_out.svg');
+}
+
+.icon-contrast {
+    mask-image: url('../assets/contrast.svg');
+    -webkit-mask-image: url('../assets/contrast.svg');
+}
+
+.icon-gallery {
+    mask-image: url('../assets/gallery.svg');
+    -webkit-mask-image: url('../assets/gallery.svg');
+}
+
+.theme-mode-icon.mask-icon {
+    width: 18px;
+    height: 18px;
+}
+
+/* =============================================
+   Developer Cache Controls (dev-only)
+   ============================================= */
+.dev-cache-controls {
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: var(--space-10);
+    margin-bottom: var(--space-6);
+}
+
+.dev-cache-header {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    margin-bottom: var(--space-8);
+}
+
+.dev-cache-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-6);
+}
+
+.dev-cache-btn {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    color: var(--color-text);
+    padding: var(--space-4) var(--space-8);
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.dev-cache-btn:hover {
+    background: var(--color-surface-hover);
+    border-color: var(--color-highlight);
+}
+
+.dev-cache-btn-danger {
+    color: var(--color-error, #dc2626);
+    border-color: rgba(220, 38, 38, 0.3);
+}
+
+.dev-cache-btn-danger:hover {
+    background: rgba(220, 38, 38, 0.1);
+    border-color: var(--color-error, #dc2626);
+}

@@ -6,6 +6,8 @@ vendor/
 dist/
 build/
 out/
+stats.html
+*.tsbuildinfo
 
 # Logs and coverage
 *.log
@@ -32,3 +34,6 @@ issue*/
 .claude/
 
 local-folder/
+
+# Playwright
+/tests/.output/
