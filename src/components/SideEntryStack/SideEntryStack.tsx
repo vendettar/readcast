@@ -1,15 +1,11 @@
 // src/components/SideEntryStack/SideEntryStack.tsx
+import { Link } from '@tanstack/react-router';
 import { useTooltip } from '../../hooks/useTooltip';
 import { useI18n } from '../../hooks/useI18n';
 import { Tooltip } from '../Tooltip';
 import type { TranslationKey } from '../../libs/translations';
 
-interface SideEntryStackProps {
-    onGalleryClick: () => void;
-    onLocalFilesClick: () => void;
-}
-
-export function SideEntryStack({ onGalleryClick, onLocalFilesClick }: SideEntryStackProps) {
+export function SideEntryStack() {
     const { t } = useI18n();
     const { tooltip, show, move, hide } = useTooltip();
 
@@ -17,38 +13,33 @@ export function SideEntryStack({ onGalleryClick, onLocalFilesClick }: SideEntryS
         show(t(key), e);
     };
 
-    const handleClick = (callback: () => void) => () => {
-        hide();
-        callback();
-    };
-
     return (
         <>
             <div className="top-entry-stack">
-                <button
+                <Link
+                    to="/gallery"
                     className="top-entry-btn panel-surface"
                     id="openGalleryBtn"
                     data-tooltip-key="tooltipGallery"
-                    onClick={handleClick(onGalleryClick)}
                     onMouseEnter={handleMouseEnter('tooltipGallery')}
                     onMouseMove={move}
                     onMouseLeave={hide}
                     onMouseDown={hide}
                 >
                     <span className="top-entry-icon mask-icon icon-gallery" />
-                </button>
-                <button
+                </Link>
+                <Link
+                    to="/local-files"
                     className="top-entry-btn panel-surface"
                     id="openLocalFilesBtn"
                     data-tooltip-key="tooltipLocalFiles"
-                    onClick={handleClick(onLocalFilesClick)}
                     onMouseEnter={handleMouseEnter('tooltipLocalFiles')}
                     onMouseMove={move}
                     onMouseLeave={hide}
                     onMouseDown={hide}
                 >
                     <span className="top-entry-icon mask-icon icon-folder" />
-                </button>
+                </Link>
             </div>
             <Tooltip
                 visible={tooltip.visible}

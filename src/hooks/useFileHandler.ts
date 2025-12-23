@@ -1,7 +1,7 @@
 // src/hooks/useFileHandler.ts
 import { useCallback, useRef } from 'react';
 import { usePlayerStore } from '../store/playerStore';
-import { DB } from '../libs/db';
+import { DB } from '../libs/dexieDb';
 import { generateSessionId } from '../libs/session';
 import { log, error as logError } from '../libs/logger';
 import { toast } from '../libs/toast';

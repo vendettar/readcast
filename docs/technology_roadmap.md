@@ -61,12 +61,30 @@
 | 本地持久化 | IndexedDB | 使用Dexie 替代自有封装 |
 | 配置/小缓存 | localStorage | ✅ 保持现状 |
 
+#### 2.2.1 Dexie 测试策略（可清库阶段 vs 上线后阶段）
+
+当前阶段（首次开发、可清库重建、不需要兼容旧数据）：
+- **不需要迁移保护测试**。这类测试会在 Dexie 重置/重写过程中成为维护负担。
+- `src/libs/__tests__/dbMigration.test.ts` 应改写为：
+  - Dexie DB 可正常初始化（schema/stores 可用）
+  - 基本 CRUD（create/read/update/delete）可用
+- 不再维护 “v7→v8 迁移保持数据” 这类断言。
+
+未来阶段（上线后、有真实用户、不能清库）：
+- 需要新增/启用 **Dexie migration protection test**，典型形式：
+  - 用旧 `version(n).stores(...)` 建库并写入数据
+  - 升级到 `version(n+1).stores(...)` + `upgrade(tx => ...)`
+  - 断言旧数据仍在、新字段/新表正确、升级过程不抛错
+
 ### 2.3 Routing 与 i18n
 
 | 能力 | 方案 | 说明 |
 |------|------|------|
 | 路由 | TanStack Router + File-Based Routing（Vite Plugin） | 现在就引入，避免后期把“视图切换/弹窗状态”整体重构为路由状态；后端接入与否不影响路由价值 |
 | i18n | 轻量方案（`t(key)` + `translations`） | 现在就定规范：禁止组件内硬编码用户可见文案；暂不引入 i18next，后期需要复数/格式化/协作流程再升级 |
+
+路由边界原则（用户体验底线）：
+- **播放器必须常驻**：将播放器（含 `<audio>` 与核心播放状态承载组件）提升到 `__root.tsx`（或等价的全局 layout）永久挂载，确保从 `/` 切到 `/gallery`、`/local-files` 等路由时 **不影响播放**。
 
 ### 2.4 长列表
 
@@ -153,7 +171,9 @@
 ### 阶段 1：低成本高收益
 
 - [ ] TanStack Router + File-Based Routing 落地（定义路由结构与页面边界）
+- [ ] 播放器提升到 `__root.tsx` 常驻：路由切换（如 `/gallery`、`/local-files`）不得中断播放
 - [ ] i18n 轻量方案落地：统一 `t(key)` 入口与 `translations` 结构；禁止组件内硬编码用户可见文案
+- [ ] 改写 `dbMigration.test.ts`：Dexie 初始化 + 基本 CRUD（不做迁移保持断言）
 - [ ] Radix Toast 替换自研 `toast.ts`
 - [ ] Radix Tooltip 替换 `useHoverMenu` / `Tooltip.tsx`
 - [ ] TanStack Query 替换 `galleryApi.ts` 缓存逻辑
@@ -171,6 +191,7 @@
 - [ ] 用户认证系统
 - [ ] 数据同步（收藏/订阅/进度）
 - [ ] 自建 CORS 代理
+- [ ] （上线后）启用 Dexie migration protection tests（当真实用户数据不可清库时）
 
 ---
 

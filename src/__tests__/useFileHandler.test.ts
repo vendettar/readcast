@@ -2,11 +2,11 @@
 import { renderHook, act } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { useFileHandler } from '../hooks/useFileHandler';
-import { DB } from '../libs/db';
+import { DB } from '../libs/dexieDb';
 import { usePlayerStore } from '../store/playerStore';
 
 // Mock DB
-vi.mock('../libs/db', () => ({
+vi.mock('../libs/dexieDb', () => ({
     DB: {
         addAudio: vi.fn().mockResolvedValue('audio-id'),
         addSubtitle: vi.fn().mockResolvedValue('subtitle-id'),

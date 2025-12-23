@@ -1,86 +1,58 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { DB } from '../db';
+import { describe, it, expect, beforeEach } from 'vitest';
+import Dexie from 'dexie';
+import { DB } from '../dexieDb';
 
-const DB_NAME = 'readcast';
+// Use a separate test database to avoid conflicts
+const TEST_DB_NAME = 'readcast-v2-test';
 
-async function openLegacyV7AndSeed(): Promise<void> {
-    await new Promise<void>((resolve, reject) => {
-        const request = indexedDB.open(DB_NAME, 7);
-
-        request.onupgradeneeded = () => {
-            const db = request.result;
-
-            // v7 stores (no settings store)
-            if (!db.objectStoreNames.contains('sessions')) {
-                const store = db.createObjectStore('sessions', { keyPath: 'id' });
-                store.createIndex('lastOpenedAt', 'lastOpenedAt', { unique: false });
-            }
-            if (!db.objectStoreNames.contains('audios')) {
-                const store = db.createObjectStore('audios', { keyPath: 'id' });
-                store.createIndex('createdAt', 'createdAt', { unique: false });
-            }
-            if (!db.objectStoreNames.contains('subtitles')) {
-                const store = db.createObjectStore('subtitles', { keyPath: 'id' });
-                store.createIndex('createdAt', 'createdAt', { unique: false });
-            }
-            if (!db.objectStoreNames.contains('subscriptions')) {
-                const store = db.createObjectStore('subscriptions', { keyPath: 'feedUrl' });
-                store.createIndex('addedAt', 'addedAt', { unique: false });
-            }
-            if (!db.objectStoreNames.contains('favorites')) {
-                const store = db.createObjectStore('favorites', { keyPath: 'key' });
-                store.createIndex('addedAt', 'addedAt', { unique: false });
-            }
-        };
-
-        request.onsuccess = () => {
-            const db = request.result;
-            const tx = db.transaction('sessions', 'readwrite');
-            const store = tx.objectStore('sessions');
-            store.put({
-                id: 'legacy_session_1',
-                progress: 12,
-                duration: 345,
-                audioId: null,
-                subtitleId: null,
-                audioFilename: 'legacy.mp3',
-                subtitleFilename: '',
-                createdAt: Date.now(),
-                updatedAt: Date.now(),
-                lastOpenedAt: Date.now(),
-            });
-            tx.oncomplete = () => {
-                db.close();
-                resolve();
-            };
-            tx.onerror = () => {
-                db.close();
-                reject(tx.error);
-            };
-        };
-        request.onerror = () => reject(request.error);
-    });
-}
-
-describe('db migration (v7 → v8)', () => {
+describe('Dexie database operations', () => {
     beforeEach(async () => {
-        await DB.clearAllData();
+        // Delete the test database before each test to ensure clean state
+        await Dexie.delete(TEST_DB_NAME);
     });
 
-    afterEach(async () => {
-        await DB.clearAllData();
+    it('can create and retrieve sessions', async () => {
+        await DB.createSession('test_session_1', {
+            progress: 12,
+            duration: 345,
+            audioFilename: 'test.mp3',
+        });
+
+        const session = await DB.getSession('test_session_1');
+        expect(session).toBeDefined();
+        expect(session?.id).toBe('test_session_1');
+        expect(session?.progress).toBe(12);
+        expect(session?.duration).toBe(345);
+        expect(session?.audioFilename).toBe('test.mp3');
     });
 
-    it('preserves existing stores/data and adds settings store', async () => {
-        await openLegacyV7AndSeed();
+    it('can update existing sessions', async () => {
+        await DB.createSession('test_session_2', { progress: 0 });
+        await DB.updateSession('test_session_2', { progress: 100 });
 
-        // Using current DB wrapper (v8) should upgrade without deleting existing data.
-        const sessions = await DB.getAllSessions();
-        expect(sessions.some(s => s.id === 'legacy_session_1')).toBe(true);
+        const session = await DB.getSession('test_session_2');
+        expect(session?.progress).toBe(100);
+    });
 
+    it('can store and retrieve settings', async () => {
         await DB.setSetting('country', 'us');
         const value = await DB.getSetting('country');
         expect(value).toBe('us');
     });
-});
 
+    it('returns null for non-existent settings', async () => {
+        const value = await DB.getSetting('non_existent_key');
+        expect(value).toBeNull();
+    });
+
+    it('can get last session ordered by lastOpenedAt', async () => {
+        // Use unique IDs and far future dates to ensure this session is last
+        const oldId = 'last_test_old_' + Date.now();
+        const newId = 'last_test_new_' + Date.now();
+        await DB.createSession(oldId, { lastOpenedAt: 1000 });
+        await DB.createSession(newId, { lastOpenedAt: Date.now() + 1000000 });
+
+        const lastSession = await DB.getLastSession();
+        expect(lastSession?.id).toBe(newId);
+    });
+});

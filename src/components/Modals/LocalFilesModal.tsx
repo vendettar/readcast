@@ -1,6 +1,6 @@
 // src/components/Modals/LocalFilesModal.tsx
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { DB, Session, StoredAudio } from '../../libs/db';
+import { DB, Session, StoredAudio } from '../../libs/dexieDb';
 import { useI18n } from '../../hooks/useI18n';
 import { usePlayerStore } from '../../store/playerStore';
 import { parseSrt } from '../../libs/subtitles';

@@ -1,10 +1,11 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { RouterProvider } from '@tanstack/react-router'
 import { I18nProvider } from './hooks/useI18n'
 import { RootErrorBoundary } from './components/RootErrorBoundary'
-import { DB } from './libs/db'
+import { DB } from './libs/dexieDb'
+import { router } from './router'
 import './index.css'
-import App from './App.tsx'
 
 declare global {
   interface Window {
@@ -34,8 +35,9 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <I18nProvider>
       <RootErrorBoundary>
-        <App />
+        <RouterProvider router={router} />
       </RootErrorBoundary>
     </I18nProvider>
   </StrictMode>,
 )
+

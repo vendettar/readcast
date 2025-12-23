@@ -1,6 +1,6 @@
 // src/hooks/useSession.ts
 import { useEffect, useRef, useCallback } from 'react';
-import { DB } from '../libs/db';
+import { DB } from '../libs/dexieDb';
 import { usePlayerStore } from '../store/playerStore';
 import { generateSessionId } from '../libs/session';
 import { log, error as logError } from '../libs/logger';

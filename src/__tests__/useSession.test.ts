@@ -2,12 +2,12 @@
 import { renderHook, act } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useSession } from '../hooks/useSession';
-import { DB } from '../libs/db';
+import { DB } from '../libs/dexieDb';
 import { usePlayerStore } from '../store/playerStore';
 import { generateSessionId } from '../libs/session';
 
 // Mock DB
-vi.mock('../libs/db', () => ({
+vi.mock('../libs/dexieDb', () => ({
     DB: {
         getLastSession: vi.fn().mockResolvedValue(null),
         createSession: vi.fn().mockResolvedValue(undefined),

@@ -1,7 +1,7 @@
 // src/components/TopRightRail/DeveloperCacheControls.tsx
 // Dev-only cache clearing controls
 
-import { DB } from '../../libs/db';
+import { DB } from '../../libs/dexieDb';
 
 // Only render in development mode
 const IS_DEV = import.meta.env.DEV;

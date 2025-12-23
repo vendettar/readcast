@@ -3,8 +3,8 @@ import { create } from 'zustand';
 import type { Podcast, Episode, ParsedFeed } from '../libs/galleryApi';
 import { searchPodcasts, fetchPodcastFeed } from '../libs/galleryApi';
 import { abortRequestsWithPrefix } from '../libs/requestManager';
-import { DB } from '../libs/db';
-import type { Subscription, Favorite } from '../libs/db';
+import { DB } from '../libs/dexieDb';
+import type { Subscription, Favorite } from '../libs/dexieDb';
 import { toast } from '../libs/toast';
 import type { TranslationKey } from '../libs/translations';
 

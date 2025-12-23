@@ -16,66 +16,202 @@
    - 当存储结构或缓存逻辑发生变化时，允许直接清库/重建。
 
 2) **每次改动都必须同步更新本文档**
-   - 任意功能改动/重构/修 bug 完成后，都要以“实际代码”为准更新 `docs/handoff_doc.md`。
-   - 文档只记录“结果/现状”，不记录过程日志。
+   - 任意功能改动/重构/修 bug 完成后，都要以"实际代码"为准更新 `docs/handoff_doc.md`。
+   - 文档只记录"结果/现状"，不记录过程日志。
 
 ---
 
 ## 1. 项目做什么（产品/功能概述）
 
-TODO（任务完成后补全：以实际代码为准）
+Readcast 是一个浏览器内播客播放器，支持：
+- **本地文件**：拖放 MP3 + SRT 字幕文件进行播放和阅读
+- **Gallery（发现）**：搜索、订阅播客，收藏节目
+- **字幕跟随**：播放时字幕自动滚动高亮
+- **选词查词**：选中字幕文本可查询词典/网页搜索
 
-- 产品概述：Readcast 的两大入口（Local Files / Gallery）
-- 关键用户流程：播放 → 字幕 → 查词；订阅/收藏；本地文件入库与恢复
+两大入口：
+- `/` - 主播放器页面
+- `/gallery` - 发现/订阅播客
+- `/local-files` - 本地文件库
+
+---
 
 ## 2. 本地开发 / 构建 / 测试
 
-## 3. 运行时配置（CORS 代理）
+```bash
+# 安装依赖
+npm install
 
-## 4. 目录结构与模块边界（建议从这里读代码）
+# 开发服务器
+npm run dev
 
-## 5. 持久化与缓存（存哪里、保多久）
+# 生产构建
+npm run build
 
-### 5.1 IndexedDB（长期持久化）
+# 运行单元测试
+npm run test:run
 
-### 5.2 localStorage（中期缓存 / 轻量配置）
+# 运行 E2E 测试
+npm run test:e2e
+```
 
-### 5.3 内存缓存（短期、刷新即失效）
+---
 
-### 5.4 Session 持久化策略
+## 3. 路由（TanStack Router + File-Based Routing）
 
-## 6. 网络与中断规则（Abort / 竞态 / 去重）
+使用 TanStack Router 实现路由，通过 Vite 插件自动生成路由树。
 
-### 6.1 直连→代理 fallback
+### 路由结构
 
-### 6.2 inflight 去重 + 并发上限
+| 路径 | 文件 | 说明 |
+|------|------|------|
+| `/` | `src/routes/index.tsx` | 主播放器页面（字幕、控制栏） |
+| `/gallery` | `src/routes/gallery.tsx` | 发现播客（模态框形式） |
+| `/local-files` | `src/routes/local-files.tsx` | 本地文件库（模态框形式） |
 
-### 6.3 中断（Abort）策略
+### 关键设计
 
-## 7. Gallery 推荐算法（榜单池 → 分组 → 触底加载）
+- **播放器常驻**：`<audio>` 元素和播放状态在 `__root.tsx` 中挂载，路由切换不中断播放
+- **模态框即路由**：Gallery 和 Local Files 作为独立路由，浏览器前进/后退导航生效
+- **路由生成**：`src/routeTree.gen.ts` 由 Vite 插件自动生成，不要手动编辑
 
-TODO（任务完成后补全：以实际代码为准）
+---
 
-## 8. Transcript / Selection（长列表与交互）
+## 4. i18n 国际化
 
-TODO（任务完成后补全：以实际代码为准）
+使用轻量级 `t(key)` 方案，**不使用 i18next**。
 
-## 9. Modal 输入锁（input lock）
+### 实现
 
-TODO（任务完成后补全：以实际代码为准）
+- **翻译文件**：`src/libs/translations.ts`（6 种语言：zh/en/ja/ko/de/es）
+- **Hook**：`src/hooks/useI18n.tsx` 提供 `t(key)` 函数
+- **Provider**：在 `main.tsx` 中包裹 `<I18nProvider>`
 
-## 10. 测试与质量门槛
+### 使用
 
-TODO（任务完成后补全：以实际代码为准）
+```tsx
+const { t } = useI18n();
+return <button>{t('btnPlay')}</button>;
+```
 
-## 11. 错误处理与用户提示（ErrorBoundary / Toast / 文案策略）
+### 规范
 
-TODO（任务完成后补全：以实际代码为准）
+- 所有用户可见文案必须使用 `t(key)`
+- 技术信息（错误详情等）只输出到 console，不暴露给用户
 
-## 12. 常见排障入口（Debug）
+---
 
-TODO（任务完成后补全：以实际代码为准）
+## 5. 持久化与缓存（Dexie IndexedDB）
 
-## 13. 重要约束与已知边界
+使用 Dexie.js 封装 IndexedDB，数据库名：`readcast-v2`。
 
-TODO（任务完成后补全：以实际代码为准）
+### 数据库 Schema
+
+| Store | Primary Key | Indexes | 用途 |
+|-------|-------------|---------|------|
+| sessions | id | lastOpenedAt | 播放会话（进度、音频/字幕 ID） |
+| audios | id | createdAt | 本地音频文件 Blob |
+| subtitles | id | createdAt | 本地字幕文件内容 |
+| subscriptions | feedUrl | addedAt | 订阅的播客 |
+| favorites | key | addedAt | 收藏的节目 |
+| settings | key | — | 用户设置（如 country） |
+
+### API
+
+```typescript
+import { DB } from './libs/dexieDb';
+
+// Session
+await DB.createSession(id, { progress: 0 });
+await DB.updateSession(id, { progress: 120 });
+const session = await DB.getSession(id);
+const lastSession = await DB.getLastSession();
+
+// Audio/Subtitle
+const audioId = await DB.addAudio(blob, filename);
+const audio = await DB.getAudio(audioId);
+
+// Settings
+await DB.setSetting('country', 'us');
+const country = await DB.getSetting('country');
+
+// Subscriptions/Favorites
+await DB.addSubscription(sub);
+await DB.getAllSubscriptions();
+```
+
+### 重置策略
+
+允许直接清库重建（首次发布策略），无需迁移兼容。
+
+---
+
+## 6. 目录结构
+
+```
+src/
+├── routes/              # TanStack Router 路由文件
+│   ├── __root.tsx       # 根布局（Header、播放器、Toast）
+│   ├── index.tsx        # 主页/播放器
+│   ├── gallery.tsx      # Gallery 路由
+│   └── local-files.tsx  # Local Files 路由
+├── components/          # React 组件
+├── hooks/               # 自定义 Hooks
+├── libs/                # 工具库
+│   ├── dexieDb.ts       # Dexie 数据库封装
+│   ├── translations.ts  # i18n 翻译
+│   └── ...
+├── store/               # Zustand stores
+├── router.tsx           # Router 实例
+└── routeTree.gen.ts     # 自动生成的路由树
+```
+
+---
+
+## 7. 测试
+
+### 单元测试（Vitest）
+
+```bash
+npm run test:run
+```
+
+- 测试文件：`src/__tests__/*.test.ts`
+- 使用 `fake-indexeddb` 模拟 IndexedDB
+- 共 115 个测试用例
+
+### E2E 测试（Playwright）
+
+```bash
+npm run test:e2e
+```
+
+---
+
+## 8. 技术栈
+
+| 类别 | 技术 |
+|------|------|
+| 框架 | React 19 + TypeScript + Vite |
+| 路由 | TanStack Router (file-based) |
+| 状态 | Zustand |
+| 持久化 | Dexie (IndexedDB) |
+| 样式 | Tailwind CSS + shadcn/ui |
+| 测试 | Vitest + Playwright |
+| i18n | 轻量 t(key) 方案 |
+
+---
+
+## 9. 常见排障
+
+### 路由不生效
+
+检查 `src/routeTree.gen.ts` 是否已生成。运行 `npm run dev` 会自动生成。
+
+### 数据库错误
+
+清除浏览器 IndexedDB 数据：DevTools → Application → Storage → 删除 `readcast-v2`。
+
+### Tailwind 样式不生效
+
+确保 `postcss.config.js` 使用 `@tailwindcss/postcss`（Tailwind v4 要求）。

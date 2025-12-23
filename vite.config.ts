@@ -1,6 +1,7 @@
 import path from "path"
 import { defineConfig, type PluginOption } from 'vite'
 import react from '@vitejs/plugin-react'
+import { TanStackRouterVite } from '@tanstack/router-plugin/vite'
 import { createRequire } from 'node:module'
 
 // https://vite.dev/config/
@@ -33,6 +34,10 @@ const visualizerPlugin = getVisualizerPlugin();
 
 export default defineConfig({
   plugins: [
+    TanStackRouterVite({
+      routesDirectory: './src/routes',
+      generatedRouteTree: './src/routeTree.gen.ts',
+    }),
     react(),
     ...(visualizerPlugin ? [visualizerPlugin] : []),
   ],
