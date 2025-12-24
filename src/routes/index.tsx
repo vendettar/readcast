@@ -1,5 +1,6 @@
 // src/routes/index.tsx
 import { createFileRoute } from '@tanstack/react-router';
+import { useFilePicker } from './__root';
 import { useCallback, useState, useEffect } from 'react';
 import { usePlayerStore } from '../store/playerStore';
 import { useZoom } from '../hooks/useZoom';
@@ -16,6 +17,7 @@ function HomePage() {
     const { zoomScale, showZoomBar, zoomIn, zoomOut, zoomReset, setShowZoomBar, scheduleHide } = useZoom();
     const [isFollowing, setIsFollowing] = useState(true);
     const { handleDragOver, handleDragLeave, handleDrop } = useFileHandler();
+    const { triggerFilePicker } = useFilePicker();
 
     // Keyboard shortcuts active on home page
     useKeyboardShortcuts({ isModalOpen: false });
@@ -79,7 +81,7 @@ function HomePage() {
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
-                onClick={() => document.getElementById('fileInput')?.click()}
+                onClick={triggerFilePicker}
             />
 
             <FloatingPanel
@@ -88,7 +90,7 @@ function HomePage() {
                 isPlaying={isPlaying}
                 progress={progress}
                 duration={duration}
-                onClick={() => document.getElementById('fileInput')?.click()}
+                onClick={triggerFilePicker}
                 onPrev={handlePrev}
                 onPlayPause={togglePlayPause}
                 onNext={handleNext}

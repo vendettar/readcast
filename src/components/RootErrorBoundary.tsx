@@ -25,22 +25,14 @@ export function RootErrorBoundary({ children }: { children: React.ReactNode }) {
     const fallback = useMemo(() => {
         return ({ error, reset }: { error: Error; reset: () => void }) => {
             return (
-                <div
-                    className="panel-surface"
-                    style={{
-                        maxWidth: 720,
-                        margin: '48px auto',
-                        padding: 20,
-                        borderRadius: 12,
-                    }}
-                >
-                    <div style={{ fontWeight: 700, fontSize: '1.05rem', marginBottom: 8 }}>
+                <div className="panel-surface max-w-2xl mx-auto my-12 p-5 rounded-xl">
+                    <div className="font-bold text-lg mb-2">
                         {t('errorBoundaryTitle')}
                     </div>
-                    <div style={{ color: 'var(--color-muted)', fontSize: '0.9rem', marginBottom: 12 }}>
+                    <div className="text-muted-foreground text-sm mb-3">
                         {t('errorBoundaryHint')}
                     </div>
-                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    <div className="flex gap-2.5 flex-wrap">
                         <button type="button" className="dev-cache-btn" onClick={handleReload}>
                             {t('errorBoundaryReload')}
                         </button>
@@ -51,26 +43,15 @@ export function RootErrorBoundary({ children }: { children: React.ReactNode }) {
 
                     {/* Keep technical diagnostics out of user-facing UI in production. */}
                     {IS_DEV && (
-                        <div style={{ marginTop: 12 }}>
+                        <div className="mt-3">
                             <details>
-                                <summary style={{ cursor: 'pointer', color: 'var(--color-muted)' }}>
+                                <summary className="cursor-pointer text-muted-foreground">
                                     {t('errorBoundaryDiagnostics')}
                                 </summary>
-                                <div
-                                    style={{
-                                        marginTop: 10,
-                                        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-                                        fontSize: '0.8rem',
-                                        whiteSpace: 'pre-wrap',
-                                        wordBreak: 'break-word',
-                                        padding: 12,
-                                        borderRadius: 8,
-                                        background: 'rgba(0,0,0,0.06)',
-                                    }}
-                                >
+                                <div className="mt-2.5 font-mono text-xs whitespace-pre-wrap break-words p-3 rounded-lg bg-black/[0.06]">
                                     {error.name}: {error.message}
                                 </div>
-                                <div style={{ marginTop: 10 }}>
+                                <div className="mt-2.5">
                                     <button
                                         type="button"
                                         className="dev-cache-btn"

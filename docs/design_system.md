@@ -47,3 +47,69 @@ Do not invent new tokens or “one-off” values in components.
 However, after each task (feature/refactor/bugfix) is completed, the agent MUST:
 - Update `docs/handoff_doc.md` to match the **actual code state** (results only; no process notes).
 - Treat handoff updates as a required “done” step for every task.
+
+---
+
+## Inline Style Rules
+
+**Default**: Use Tailwind CSS only. Inline styles (`style={{ ... }}`) are **prohibited**.
+
+**Exceptions** (whitelist only):
+1. **Virtual lists**: `top`, `height`, `transform` for react-window/virtualization positioning
+2. **Dynamic popups**: `left`, `top` for cursor-based positioning (e.g., SelectionUI, context menus)
+3. **CSS variable injection**: `--variable-name` for dynamic values (see pattern below)
+
+All other inline styles are **forbidden**. Use Tailwind utilities or component-scoped CSS.
+
+---
+
+## CSS Variable Pattern for Dynamic Values
+
+For values that need runtime calculation (progress bars, dynamic widths/heights):
+
+**✅ Correct**:
+```tsx
+// Component
+<div 
+    className="progress-bar"
+    style={{ '--progress': '37%' } as React.CSSProperties}
+/>
+
+// CSS
+.progress-bar {
+    width: var(--progress, 0%);
+    /* other Tailwind/static styles */
+}
+```
+
+**❌ Wrong**:
+```tsx
+// Direct inline style
+<div style={{ width: '37%' }} />
+```
+
+**Why**: CSS variables keep visual tokens in CSS while allowing dynamic JavaScript values.
+
+---
+
+## File Picker Pattern (No DOM Queries)
+
+Use `useFilePicker()` hook instead of `document.getElementById()`:
+
+**✅ Correct**:
+```tsx
+import { useFilePicker } from '../routes/__root';
+
+function MyComponent() {
+    const { triggerFilePicker } = useFilePicker();
+    return <button onClick={triggerFilePicker}>Upload</button>;
+}
+```
+
+**❌ Wrong**:
+```tsx
+// Direct DOM query
+<button onClick={() => document.getElementById('fileInput')?.click()}>
+```
+
+**Why**: Context-based approach is type-safe, survives route changes, and avoids DOM coupling.

@@ -47,28 +47,28 @@ export function ProxyHealthControls() {
     }, [result, t]);
 
     return (
-        <div style={{ padding: '12px', borderBottom: '1px solid var(--color-border)' }}>
-            <div style={{ fontWeight: 600, fontSize: '0.875rem', marginBottom: 8 }}>
+        <div className="p-3 border-b border-border">
+            <div className="font-semibold text-sm mb-2">
                 {t('proxyTitle')}
             </div>
-            <div style={{ display: 'grid', gap: 6, fontSize: '0.8125rem', color: 'var(--color-muted)' }}>
+            <div className="grid gap-1.5 text-[0.8125rem] text-muted-foreground">
                 {showAdvanced && (
                     <div>
-                        {t('proxyUrlLabel')}: <span style={{ color: 'var(--color-text)' }}>{proxyUrl}</span>
+                        {t('proxyUrlLabel')}: <span className="text-foreground">{proxyUrl}</span>
                     </div>
                 )}
                 {showAdvanced && (
                     <div>
-                        {t('proxyModeLabel')}: <span style={{ color: 'var(--color-text)' }}>{modeLabel}</span>
+                        {t('proxyModeLabel')}: <span className="text-foreground">{modeLabel}</span>
                     </div>
                 )}
                 {statusLine && (
-                    <div style={{ color: result?.ok ? 'var(--color-success)' : 'var(--color-error)' }}>
+                    <div className={result?.ok ? 'text-green-600' : 'text-red-600'}>
                         {statusLine}
                     </div>
                 )}
             </div>
-            <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
+            <div className="mt-2.5 flex gap-2">
                 <button
                     type="button"
                     className="dev-cache-btn"

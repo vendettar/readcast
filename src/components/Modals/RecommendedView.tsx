@@ -223,7 +223,7 @@ export function RecommendedView({ country, lang, onSelectPodcast }: RecommendedV
                 <div className="recommended-loading-more">{t('loadingMore')}</div>
             )}
             {!allLoaded && !loading && (
-                <div ref={sentinelRef} className="recommended-load-sentinel" style={{ height: 40 }} />
+                <div ref={sentinelRef} className="recommended-load-sentinel h-10" />
             )}
             {allLoaded && groups.length > 0 && (
                 <div className="recommended-end-divider" />

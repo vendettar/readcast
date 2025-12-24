@@ -178,6 +178,7 @@
     height: 100%;
     background: var(--color-highlight);
     border-radius: 2px;
+    width: var(--progress, 0%);
 }
 
 .localfiles-item-delete {

@@ -187,7 +187,7 @@ export function LocalFilesModal({ isOpen, onClose }: LocalFilesModalProps) {
             >
                 <div className="localfiles-nav-row">
                     <span id="localfiles-modal-title" className="localfiles-title">{t('navLocalFiles')}</span>
-                    <span style={{ color: 'var(--color-muted)', fontSize: '0.85rem' }}>
+                    <span className="text-muted-foreground text-sm">
                         {files.length} items • {formatFileSize(totalSize)}
                     </span>
                     <button type="button" className="localfiles-close" onClick={onClose} aria-label={t('ariaClose')}>
@@ -204,7 +204,7 @@ export function LocalFilesModal({ isOpen, onClose }: LocalFilesModalProps) {
                         type="file"
                         accept=".mp3,.mp4,.m4a,.wav,.ogg,.srt"
                         multiple
-                        style={{ display: 'none' }}
+                        className="hidden"
                         onChange={handleFileChange}
                     />
                 </div>
@@ -235,7 +235,7 @@ export function LocalFilesModal({ isOpen, onClose }: LocalFilesModalProps) {
                                                 <div className="localfiles-item-progress">
                                                     <div
                                                         className="localfiles-item-progress-bar"
-                                                        style={{ width: `${(file.session.progress / file.session.duration) * 100}%` }}
+                                                        style={{ '--progress': `${(file.session.progress / file.session.duration) * 100}%` } as React.CSSProperties}
                                                     />
                                                 </div>
                                             )}

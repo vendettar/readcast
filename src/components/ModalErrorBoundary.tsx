@@ -58,7 +58,7 @@ function ModalCrashFallback({
                 onClick={e => e.stopPropagation()}
             >
                 <div className={navRowClassName}>
-                    <span id={titleId} style={{ fontWeight: 750, flex: 1, minWidth: 0 }}>
+                    <span id={titleId} className="font-extrabold flex-1 min-w-0">
                         {t('modalCrashedTitle')}
                     </span>
                     <button
@@ -72,10 +72,10 @@ function ModalCrashFallback({
                 </div>
 
                 <div className={contentClassName}>
-                    <div className={emptyClassName} style={{ maxWidth: 520, margin: '0 auto' }}>
+                    <div className={`${emptyClassName} max-w-lg mx-auto`}>
                         {t('modalCrashedHint')}
                     </div>
-                    <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 12 }}>
+                    <div className="flex gap-2.5 justify-center mt-3">
                         <button type="button" className="dev-cache-btn" onClick={onRetry}>
                             {t('modalCrashedRetry')}
                         </button>

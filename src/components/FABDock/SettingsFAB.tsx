@@ -10,9 +10,8 @@ export function SettingsFAB() {
                 <span className="action-icon mask-icon icon-settings" />
             </button>
             <div className="action-dropdown panel-surface">
-                <div style={{ padding: '12px', fontSize: '0.8125rem', color: 'var(--color-muted)' }}>
-                    {t('settingsComingSoon')}
-                </div>
+                <div className="p-3 text-[0.8125rem] text-muted-foreground">
+                    {t('settingsComingSoon')}\n                </div>
             </div>
         </div>
     );

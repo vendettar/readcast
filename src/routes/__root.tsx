@@ -1,6 +1,6 @@
 // src/routes/__root.tsx
 import { createRootRoute, Outlet } from '@tanstack/react-router';
-import { useRef, useEffect } from 'react';
+import { createContext, useContext, useRef, useEffect, useCallback } from 'react';
 import { usePlayerStore } from '../store/playerStore';
 import { useTheme } from '../hooks/useTheme';
 import { useFileHandler } from '../hooks/useFileHandler';
@@ -10,6 +10,17 @@ import { TopRightRail } from '../components/TopRightRail';
 import { SideEntryStack } from '../components/SideEntryStack';
 import { FABDock } from '../components/FABDock';
 import { ToastContainer } from '../components/Toast';
+
+// FilePickerContext to avoid document.getElementById
+const FilePickerContext = createContext<{ triggerFilePicker: () => void } | null>(null);
+
+export function useFilePicker() {
+    const context = useContext(FilePickerContext);
+    if (!context) {
+        throw new Error('useFilePicker must be used within RootLayout');
+    }
+    return context;
+}
 
 function RootLayout() {
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -102,8 +113,13 @@ function RootLayout() {
         }
     }, [pendingSeek, clearPendingSeek]);
 
+    // FilePicker callback for children to trigger file selection
+    const triggerFilePicker = useCallback(() => {
+        fileInputRef.current?.click();
+    }, []);
+
     return (
-        <>
+        <FilePickerContext.Provider value={{ triggerFilePicker }}>
             <Header />
             <TopRightRail
                 themeMode={themeMode}
@@ -129,7 +145,7 @@ function RootLayout() {
 
             <FABDock />
             <ToastContainer />
-        </>
+        </FilePickerContext.Provider>
     );
 }
 

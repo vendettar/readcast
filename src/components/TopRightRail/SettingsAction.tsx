@@ -25,11 +25,7 @@ export function SettingsAction() {
             <div className="action-dropdown panel-surface" id="settingsDropdown">
                 <ProxyHealthControls />
                 <DeveloperCacheControls />
-                <div style={{
-                    padding: '12px',
-                    fontSize: '0.8125rem',
-                    color: 'var(--color-muted)'
-                }}>
+                <div className="p-3 text-[0.8125rem] text-muted-foreground">
                     {t('settingsComingSoon')}
                 </div>
             </div>

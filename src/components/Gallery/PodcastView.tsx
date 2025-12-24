@@ -143,7 +143,7 @@ export function PodcastView() {
                     />
                 ))}
                 {hasMore && (
-                    <div ref={loadMoreRef} className="gallery-load-trigger" style={{ height: 40 }} />
+                    <div ref={loadMoreRef} className="gallery-load-trigger h-10" />
                 )}
             </div>
         </div>
