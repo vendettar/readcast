@@ -1,14 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import Dexie from 'dexie';
 import { DB } from '../dexieDb';
-
-// Use a separate test database to avoid conflicts
-const TEST_DB_NAME = 'readcast-v2-test';
 
 describe('Dexie database operations', () => {
     beforeEach(async () => {
-        // Delete the test database before each test to ensure clean state
-        await Dexie.delete(TEST_DB_NAME);
+        // Ensure a clean state between tests.
+        // This project does not require DB migration compatibility; we can safely reset data.
+        await DB.clearAllData();
     });
 
     it('can create and retrieve sessions', async () => {
