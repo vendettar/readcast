@@ -74,6 +74,8 @@ npm run test:e2e
 - **播放器常驻**：`<audio>` 元素和播放状态在 `__root.tsx` 中挂载，路由切换不中断播放
 - **模态框即路由**：Gallery 和 Local Files 作为独立路由，浏览器前进/后退导航生效
 - **路由生成**：`src/routeTree.gen.ts` 由 Vite 插件自动生成，不要手动编辑
+- **全局样式**：CSS 在 `main.tsx` 入口引入，确保所有路由可用
+- **播放控制**：进度条拖动通过 `onSeek` → `store.seekTo` → `store.pendingSeek` → `__root.tsx` 的 audio element，避免直接 DOM 操作
 
 ---
 
@@ -138,11 +140,14 @@ const country = await DB.getSetting('country');
 // Subscriptions/Favorites
 await DB.addSubscription(sub);
 await DB.getAllSubscriptions();
+
+// Clear all data (table-level clear, keeps DB instance alive)
+await DB.clearAllData();
 ```
 
 ### 重置策略
 
-允许直接清库重建（首次发布策略），无需迁移兼容。
+允许直接清库重建（首次发布策略），无需迁移兼容。`clearAllData()` 使用表级清空而非删除数据库，保持 DB 实例可用。
 
 ---
 

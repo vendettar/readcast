@@ -266,10 +266,20 @@ export const DB = {
     async clearAllData(): Promise<void> {
         log('[DB] Clearing all data...');
         try {
-            await db.delete();
-            log('[DB] Deleted database:', DB_NAME);
+            await db.transaction('rw',
+                [db.sessions, db.audios, db.subtitles, db.subscriptions, db.favorites, db.settings],
+                async () => {
+                    await db.sessions.clear();
+                    await db.audios.clear();
+                    await db.subtitles.clear();
+                    await db.subscriptions.clear();
+                    await db.favorites.clear();
+                    await db.settings.clear();
+                }
+            );
+            log('[DB] All stores cleared');
         } catch (err) {
-            logError('[DB] Failed to delete database:', err);
+            logError('[DB] Failed to clear data:', err);
             throw err;
         }
     },

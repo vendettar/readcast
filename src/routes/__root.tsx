@@ -10,10 +10,6 @@ import { TopRightRail } from '../components/TopRightRail';
 import { SideEntryStack } from '../components/SideEntryStack';
 import { FABDock } from '../components/FABDock';
 import { ToastContainer } from '../components/Toast';
-import '../styles/original.css';
-import '../styles/overrides.css';
-import '../styles/gallery.css';
-import '../styles/localfiles.css';
 
 function RootLayout() {
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -124,7 +120,7 @@ function RootLayout() {
                 multiple
                 accept=".mp3,.srt"
                 onChange={handleFileChange}
-                style={{ display: 'none' }}
+                className="hidden"
             />
             {/* Audio element is persistent across all routes */}
             {audioUrl && <audio ref={audioRef} src={audioUrl} />}

@@ -1,5 +1,4 @@
 // src/components/DropZone/FloatingPanel.tsx
-import React from 'react';
 import { useI18n } from '../../hooks/useI18n';
 import { PlayerControls } from '../PlayerControls/PlayerControls';
 import { ProgressBar } from '../PlayerControls/ProgressBar';
@@ -10,7 +9,6 @@ interface FloatingPanelProps {
     isPlaying: boolean;
     progress: number;
     duration: number;
-    audioRef: React.RefObject<HTMLAudioElement | null>;
     onClick: () => void;
     onPrev: () => void;
     onPlayPause: () => void;
@@ -24,7 +22,6 @@ export function FloatingPanel({
     isPlaying,
     progress,
     duration,
-    audioRef,
     onClick,
     onPrev,
     onPlayPause,
@@ -64,7 +61,6 @@ export function FloatingPanel({
             <ProgressBar
                 progress={progress}
                 duration={duration}
-                audioRef={audioRef}
                 onSeek={onSeek}
             />
         </div>

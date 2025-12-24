@@ -6,6 +6,10 @@ import { RootErrorBoundary } from './components/RootErrorBoundary'
 import { DB } from './libs/dexieDb'
 import { router } from './router'
 import './index.css'
+import './styles/original.css'
+import './styles/overrides.css'
+import './styles/gallery.css'
+import './styles/localfiles.css'
 
 declare global {
   interface Window {

@@ -5,17 +5,13 @@ import { formatTimeLabel } from '../../libs/subtitles';
 interface ProgressBarProps {
     progress: number;
     duration: number;
-    audioRef: React.RefObject<HTMLAudioElement | null>;
     onSeek: (time: number) => void;
 }
 
-export function ProgressBar({ progress, duration, audioRef, onSeek }: ProgressBarProps) {
+export function ProgressBar({ progress, duration, onSeek }: ProgressBarProps) {
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newTime = parseFloat(e.target.value);
         onSeek(newTime);
-        if (audioRef.current) {
-            audioRef.current.currentTime = newTime;
-        }
     };
 
     return (

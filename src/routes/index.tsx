@@ -88,7 +88,6 @@ function HomePage() {
                 isPlaying={isPlaying}
                 progress={progress}
                 duration={duration}
-                audioRef={{ current: null }} // Audio is in __root, controls work via store
                 onClick={() => document.getElementById('fileInput')?.click()}
                 onPrev={handlePrev}
                 onPlayPause={togglePlayPause}
