@@ -33,7 +33,7 @@
 |------|------|------|
 | 弹窗/Toast/Tooltip | Radix UI | 内置焦点管理、无障碍、避免自研 input lock |
 | 设置/表单/Gallery 列表 | Tailwind + shadcn/ui | 快速迭代、统一风格 |
-| **字幕 TranscriptView** | Tailwind + 少量“交互专用 CSS” | 绝大多数样式可用 Tailwind/Design System 表达；但虚拟列表固定行高、`::highlight`、滚动/选区细节仍需要少量 CSS 选择器/伪元素能力 |
+| **字幕 TranscriptView** | Tailwind + 少量“交互专用 CSS” | 产品要求：**字幕每个单词都可见（多行可见，禁止省略号截断）**；因此虚拟列表必须支持动态高度（推荐 `react-virtuoso`），并且 `::highlight`、滚动/选区细节仍需要少量 CSS 选择器/伪元素能力 |
 | **播放器控件** | Tailwind + 少量“交互专用 CSS” | Range/拖拽/浏览器兼容（如 `appearance`、滑块样式）很难用纯 Tailwind 完整表达，允许少量 CSS 做细节补齐 |
 | **选词弹窗** | Tailwind + 少量“交互专用 CSS” | 浮层定位、遮罩层级、文本选区/高亮等交互细节仍可能需要少量 CSS（但 token/颜色/间距必须来自 Design System） |
 
@@ -43,7 +43,7 @@
 
 允许写 CSS 的典型场景：
 - `::highlight` / 选择高亮相关（例如字幕查词高亮）
-- 虚拟列表固定行高/溢出截断等“约束型样式”
+- 虚拟列表容器/窗口渲染等“约束型样式”（用于长列表性能；字幕要求多行可见，不使用截断）
 - Range/滑块（播放器进度条/音量条）的浏览器兼容属性（如 `appearance` 等）
 - 复杂伪元素（渐变遮罩、mask、细粒度 pointer-events 规则）
 
@@ -90,8 +90,8 @@
 
 | 场景 | 方案 |
 |------|------|
-| 固定行高字幕 | react-window (FixedSizeList) |
-| 动态行高字幕（未来） | react-virtuoso |
+| 字幕（产品要求：多行可见） | **react-virtuoso（动态高度，必选）** |
+| 固定行高长列表（可选） | react-window (FixedSizeList) |
 
 ---
 
@@ -181,7 +181,7 @@
 ### 阶段 2：核心改造
 
 - [ ] Radix Dialog 替换 `GalleryModal` / `LocalFilesModal`
-- [ ] react-window 替换 `useVirtualList`
+- [ ] react-virtuoso 替换 `useVirtualList`（字幕多行可见；不使用单行省略）
 - [ ] Tailwind + shadcn/ui 覆盖 Gallery/Settings UI
 - [ ] 清理遗留样式：将 `src/styles/original.css` 拆解/替换为 Tailwind + 少量“交互专用 CSS”（按 2.1.1 约束）
 

@@ -55,7 +55,7 @@ However, after each task (feature/refactor/bugfix) is completed, the agent MUST:
 **Default**: Use Tailwind CSS only. Inline styles (`style={{ ... }}`) are **prohibited**.
 
 **Exceptions** (whitelist only):
-1. **Virtual lists**: `top`, `height`, `transform` for react-window/virtualization positioning
+1. **Virtual lists**: `top`, `height`, `transform` for virtualization positioning (e.g. react-virtuoso / react-window)
 2. **Dynamic popups**: `left`, `top` for cursor-based positioning (e.g., SelectionUI, context menus)
 3. **CSS variable injection**: `--variable-name` for dynamic values (see pattern below)
 
@@ -113,3 +113,15 @@ function MyComponent() {
 ```
 
 **Why**: Context-based approach is type-safe, survives route changes, and avoids DOM coupling.
+
+---
+
+## Transcript Text Visibility Rule (Product Requirement)
+
+For transcript subtitles, **every word must remain visible** (multi-line wrapping is required).
+
+Therefore:
+- Do NOT use `text-overflow: ellipsis` / `white-space: nowrap` to truncate subtitle text in the transcript.
+- Do NOT rely on fixed row height + overflow clipping to hide text.
+
+This rule applies to the transcript only. Other UI surfaces (e.g. cards/lists) may still use truncation when appropriate.
