@@ -114,6 +114,9 @@ export const translations = {
         qaA1: 'Readcast 是一个轻量级浏览器播放器，可以在收听 MP3 的同时阅读匹配的 SRT 字幕文件。',
         qaQ2: 'Readcast 会上传我的文件吗？',
         qaA2: '所有处理都在浏览器中进行，文件不会上传到任何地方。',
+        transcriptErrorTitle: '字幕加载出错',
+        transcriptErrorHint: '显示字幕时遇到问题。',
+        transcriptCopyDebug: '复制诊断信息',
     },
     en: {
         dropTitleIntro: 'Drag & drop or click to add MP3 and SRT files',
@@ -215,6 +218,9 @@ export const translations = {
         qaA1: 'Readcast is a lightweight browser player for listening to an MP3 while reading along with a matching SRT subtitle file.',
         qaQ2: 'Does Readcast upload my files?',
         qaA2: 'All processing happens in the browser; files are not uploaded anywhere.',
+        transcriptErrorTitle: 'Transcript error',
+        transcriptErrorHint: 'There was a problem displaying the transcript.',
+        transcriptCopyDebug: 'Copy debug info',
     },
     ja: {
         dropTitleIntro: 'MP3 と SRT をドラッグ＆ドロップ / クリックで追加',
@@ -316,6 +322,9 @@ export const translations = {
         qaA1: 'Readcast は、MP3 を聴きながら対応する SRT 字幕ファイルを読める軽量ブラウザプレーヤーです。',
         qaQ2: 'Readcast はファイルをアップロードしますか？',
         qaA2: 'すべての処理はブラウザ内で行われ、ファイルはどこにもアップロードされません。',
+        transcriptErrorTitle: '字幕エラー',
+        transcriptErrorHint: '字幕の表示中に問題が発生しました。',
+        transcriptCopyDebug: 'デバッグ情報をコピー',
     },
     ko: {
         dropTitleIntro: 'MP3 · SRT를 드래그하거나 클릭해서 추가',
@@ -417,6 +426,9 @@ export const translations = {
         qaA1: 'Readcast는 MP3를 들으면서 매칭되는 SRT 자막 파일을 읽을 수 있는 경량 브라우저 플레이어입니다.',
         qaQ2: 'Readcast가 파일을 업로드하나요?',
         qaA2: '모든 처리는 브라우저에서 이루어지며 파일은 어디에도 업로드되지 않습니다.',
+        transcriptErrorTitle: '자막 오류',
+        transcriptErrorHint: '자막을 표시하는 중 문제가 발생했습니다.',
+        transcriptCopyDebug: '디버그 정보 복사',
     },
     de: {
         dropTitleIntro: 'MP3 und SRT per Drag & Drop oder Klick hinzufügen',
@@ -518,6 +530,9 @@ export const translations = {
         qaA1: 'Readcast ist ein leichter Browser-Player zum Anhören von MP3s während man die passende SRT-Untertiteldatei liest.',
         qaQ2: 'Lädt Readcast meine Dateien hoch?',
         qaA2: 'Alle Verarbeitung findet im Browser statt; Dateien werden nirgendwo hochgeladen.',
+        transcriptErrorTitle: 'Transkript-Fehler',
+        transcriptErrorHint: 'Bei der Anzeige des Transkripts ist ein Problem aufgetreten.',
+        transcriptCopyDebug: 'Debug-Infos kopieren',
     },
     es: {
         dropTitleIntro: 'Arrastra o haz clic para subir archivos MP3 y SRT',
@@ -619,5 +634,8 @@ export const translations = {
         qaA1: 'Readcast es un reproductor ligero de navegador para escuchar MP3 mientras lees el archivo de subtítulos SRT correspondiente.',
         qaQ2: '¿Readcast sube mis archivos?',
         qaA2: 'Todo el procesamiento ocurre en el navegador; los archivos no se suben a ningún lugar.',
+        transcriptErrorTitle: 'Error de transcripción',
+        transcriptErrorHint: 'Hubo un problema al mostrar la transcripción.',
+        transcriptCopyDebug: 'Copiar info de depuración',
     },
 } as const;

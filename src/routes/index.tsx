@@ -12,6 +12,9 @@ import { TranscriptView } from '../components/Transcript';
 import { FollowButton } from '../components/FollowButton';
 import { ZoomControl } from '../components/ZoomControl';
 import { CoverArt } from '../components/CoverArt';
+import { ErrorBoundary } from '../components/ErrorBoundary';
+import { TranscriptErrorFallback } from '../components/Transcript/TranscriptErrorFallback';
+import { reportError } from '../libs/errorReporter';
 
 function HomePage() {
     const { zoomScale, showZoomBar, zoomIn, zoomOut, zoomReset, setShowZoomBar, scheduleHide } = useZoom();
@@ -109,14 +112,24 @@ function HomePage() {
                 />
             )}
 
-            <TranscriptView
-                subtitles={subtitles}
-                currentIndex={currentIndex}
-                onJumpToSubtitle={handleJumpToSubtitle}
-                isFollowing={isFollowing}
-                onFollowingChange={setIsFollowing}
-                zoomScale={zoomScale}
-            />
+            <ErrorBoundary
+                fallback={({ error, reset }) => (
+                    <TranscriptErrorFallback error={error} reset={reset} />
+                )}
+                onError={(error, info) => {
+                    console.error('[TranscriptView]', error, info);
+                    reportError(error, info);
+                }}
+            >
+                <TranscriptView
+                    subtitles={subtitles}
+                    currentIndex={currentIndex}
+                    onJumpToSubtitle={handleJumpToSubtitle}
+                    isFollowing={isFollowing}
+                    onFollowingChange={setIsFollowing}
+                    zoomScale={zoomScale}
+                />
+            </ErrorBoundary>
 
             <FollowButton
                 isPlaying={isPlaying}

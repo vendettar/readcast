@@ -243,3 +243,46 @@ npm run test:e2e
 ### Tailwind 样式不生效
 
 确保 `postcss.config.js` 使用 `@tailwindcss/postcss`（Tailwind v4 要求）。
+
+---
+
+## 11. 架构加固 (Architecture Hardening)
+
+### 代码分割
+
+- **Vendor 分块**：`vite.config.ts` 使用 `manualChunks` 将大型依赖拆分：
+  - `vendor-react` (11kB): react, react-dom
+  - `vendor-router` (76kB): @tanstack/react-router
+  - `vendor-db` (96kB): dexie
+  - `vendor-virtuoso` (54kB): react-virtuoso
+- **主包大小**：从 518kB 降至 276kB
+- **懒加载**：Gallery 和 LocalFiles 模态框使用 `lazy()` 动态加载
+
+### 错误隔离
+
+| 边界 | 覆盖范围 | 回退 UI |
+|------|----------|---------|
+| `RootErrorBoundary` | 整个应用 | 全屏错误页面 + 刷新按钮 |
+| `ModalErrorBoundary` | Gallery / LocalFiles 模态框 | 模态框内错误提示 + 重试按钮 |
+| `TranscriptView ErrorBoundary` | 字幕视图 | 友好错误提示 + 复制诊断信息按钮 |
+
+**快速测试方法**：在 `SubtitleLine.tsx` 中临时添加 `throw new Error('test')`，刷新页面，验证错误回退 UI 正常显示而非白屏。
+
+### 可观测性 (Logging)
+
+- **工具**：`src/libs/logger.ts`
+- **级别**：debug / info / log / warn / error
+- **策略**：
+  - `error` 始终输出（含生产环境）
+  - 其他级别仅开发环境输出
+- **用户操作失败**：使用 `console.error` + `toast.errorKey()` 组合（参见 `galleryStore.handleDbWriteError`）
+
+### 无障碍 (Accessibility)
+
+模态框（Gallery / LocalFiles）完整实现：
+- `role="dialog"` + `aria-modal="true"` + `aria-labelledby`
+- **焦点陷阱**：`useModalInputLock` 实现 Tab/Shift+Tab 循环
+- **Esc 关闭**：返回 `/` 并恢复之前焦点
+- **背景遮罩**：点击不关闭（仅 Esc / 关闭按钮）
+- **播放不中断**：`<audio>` 挂载在 `__root.tsx`，路由切换不影响
+
