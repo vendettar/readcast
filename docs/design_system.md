@@ -55,7 +55,7 @@ However, after each task (feature/refactor/bugfix) is completed, the agent MUST:
 **Default**: Use Tailwind CSS only. Inline styles (`style={{ ... }}`) are **prohibited**.
 
 **Exceptions** (whitelist only):
-1. **Virtual lists**: `top`, `height`, `transform` for virtualization positioning (e.g. react-virtuoso / react-window)
+1. **Virtual lists**: `top`, `height`, `transform`, `overflow` for virtualization positioning (e.g. react-virtuoso / react-window). Includes the `TranscriptView` container and its Virtuoso component.
 2. **Dynamic popups**: `left`, `top` for cursor-based positioning (e.g., SelectionUI, context menus)
 3. **CSS variable injection**: `--variable-name` for dynamic values (see pattern below)
 

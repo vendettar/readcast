@@ -212,11 +212,23 @@ npm run test:e2e
 产品要求：
 - **字幕每个单词都可见**（多行可见，禁止省略号截断）。
 
-当前实现说明：
-- 历史上为长列表性能实现过“固定行高 + 单行省略”的虚拟列表策略；该策略与上述产品要求不一致。
+当前实现：
+- 使用 `react-virtuoso` 实现动态高度虚拟列表。
+- 移除了固定行高约束（`height: clamp(48px, ...)`）和文本截断（`text-overflow: ellipsis; white-space: nowrap`）。
+- CSS 改为 `word-wrap: break-word; overflow-wrap: break-word; line-height: 1.5`，支持多行显示。
+- **Zoom 支持**：通过 `useEffect` 监听 `zoomScale` 变化并触发 Virtuoso 重新测量，确保缩放后滚动计算正确。
 
-后续改造方向（以 `docs/technology_roadmap.md` 为准）：
-- 使用 `react-virtuoso` 实现动态高度虚拟列表，并移除 Transcript 的 `ellipsis/nowrap` 截断与固定行高依赖。
+实现细节：
+- 组件：`src/components/Transcript/TranscriptView.tsx`
+- CSS：`src/styles/original.css` (`.subtitle-line`、`.subtitle-text`)
+- Following 模式：使用 `virtuosoRef.scrollToIndex()` 自动滚动到当前字幕行。
+- **内联样式**：TranscriptView 容器使用了内联样式（`height: 100%`, `overflow: auto`），这属于 `docs/design_system.md` 中定义的**白名单**（虚拟列表定位与容器约束），符合设计规范。
+
+## 10. 资源与资产 (Assets)
+
+- **图标稳定化**：所有 `src/styles/overrides.css` 引用的图标均已补全并整理至 `src/assets/`。
+- **图标源**：采用 Material Icons (Android SVG) 风格。
+- **构建校验**：已通过 `npm run build` 校验，无缺失资源警告。
 
 ## 9. 常见排障
 

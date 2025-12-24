@@ -16,7 +16,7 @@ interface TranscriptViewProps {
     zoomScale: number;
 }
 
-export function TranscriptView({ subtitles, currentIndex, onJumpToSubtitle, isFollowing, onFollowingChange }: TranscriptViewProps) {
+export function TranscriptView({ subtitles, currentIndex, onJumpToSubtitle, isFollowing, onFollowingChange, zoomScale }: TranscriptViewProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const virtuosoRef = useRef<VirtuosoHandle>(null);
     const { state, copyText, searchWeb, lookupFromMenu, closeMenu, closeLookup } = useSelection(containerRef);
@@ -95,6 +95,20 @@ export function TranscriptView({ subtitles, currentIndex, onJumpToSubtitle, isFo
             onFollowingChange(false);
         }
     }, [isFollowing, onFollowingChange]);
+
+    // Trigger Virtuoso re-measurement when zoom changes (CSS calc affects line heights)
+    useEffect(() => {
+        // Force Virtuoso to re-measure all items when zoom scale changes
+        // This prevents scroll position drift caused by CSS-calculated heights
+        if (virtuosoRef.current) {
+            // Small delay to let CSS transitions settle
+            const timer = setTimeout(() => {
+                // Trigger a simple scroll to force re-measurement
+                virtuosoRef.current?.scrollBy({ top: 0, behavior: 'auto' });
+            }, 50);
+            return () => clearTimeout(timer);
+        }
+    }, [zoomScale]);
 
     useEffect(() => {
         return () => {
