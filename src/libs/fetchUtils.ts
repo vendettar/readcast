@@ -9,9 +9,9 @@ const DEFAULT_TIMEOUT_MS = 15000;
 // Runtime config interface (can be set by index.html or /env.js)
 declare global {
     interface Window {
-        __READCAST_ENV__?: {
-            READCAST_CORS_PROXY_URL?: string;
-            READCAST_CORS_PROXY_PRIMARY?: boolean | string;
+        __READIO_ENV__?: {
+            READIO_CORS_PROXY_URL?: string;
+            READIO_CORS_PROXY_PRIMARY?: boolean | string;
         };
     }
 }
@@ -35,9 +35,9 @@ function normalizeCustomProxyUrl(url: string): string {
 }
 
 export function getCorsProxyConfig(): { proxyUrl: string; proxyPrimary: boolean } {
-    const env = (typeof window !== 'undefined' && window.__READCAST_ENV__) || {};
-    const customUrl = normalizeCustomProxyUrl(env.READCAST_CORS_PROXY_URL || '');
-    const customPrimary = parseBoolean(env.READCAST_CORS_PROXY_PRIMARY, false);
+    const env = (typeof window !== 'undefined' && window.__READIO_ENV__) || {};
+    const customUrl = normalizeCustomProxyUrl(env.READIO_CORS_PROXY_URL || '');
+    const customPrimary = parseBoolean(env.READIO_CORS_PROXY_PRIMARY, false);
 
     return {
         proxyUrl: customUrl || DEFAULT_CORS_PROXY,

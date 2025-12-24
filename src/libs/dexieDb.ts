@@ -4,7 +4,7 @@ import Dexie, { type EntityTable } from 'dexie';
 import { log, error as logError } from './logger';
 
 // Use new database name - fresh start per first-release policy
-const DB_NAME = 'readcast-v2';
+const DB_NAME = 'readio-v2';
 
 export interface Session {
     id: string;
@@ -61,7 +61,7 @@ export interface Setting {
 }
 
 // Dexie database class
-class ReadcastDB extends Dexie {
+class ReadioDB extends Dexie {
     sessions!: EntityTable<Session, 'id'>;
     audios!: EntityTable<StoredAudio, 'id'>;
     subtitles!: EntityTable<StoredSubtitle, 'id'>;
@@ -82,7 +82,7 @@ class ReadcastDB extends Dexie {
     }
 }
 
-const db = new ReadcastDB();
+const db = new ReadioDB();
 
 function generateId(): string {
     return crypto.randomUUID();

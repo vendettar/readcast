@@ -189,7 +189,7 @@ body.ready {
 
 /* === Selection Overlay (Drag Select) === */
 /* Real-time selection overlay */
-.readcast-selection-overlay {
+.readio-selection-overlay {
   pointer-events: none;
   position: fixed;
   top: 0;
@@ -199,14 +199,14 @@ body.ready {
   z-index: var(--z-highlight);
 }
 
-.readcast-overlay-rect {
+.readio-overlay-rect {
   position: absolute;
   background-color: var(--selection-bg);
   z-index: 0;
 }
 
 /* === Word Hover Overlay === */
-.readcast-word-hover-overlay {
+.readio-word-hover-overlay {
   pointer-events: none;
   position: fixed;
   top: 0;
@@ -216,7 +216,7 @@ body.ready {
   z-index: var(--z-highlight);
 }
 
-.readcast-word-hover-rect {
+.readio-word-hover-rect {
   position: absolute;
   border-radius: var(--radius-xxxxs);
   background-color: var(--ui-dragover-bg-weak);
@@ -226,7 +226,7 @@ body.ready {
     box-shadow 0.08s ease;
 }
 
-.readcast-word-hover-rect.is-pressed {
+.readio-word-hover-rect.is-pressed {
   background-color: var(--ui-dragover-bg);
   box-shadow:
     inset 0 1px 2px rgba(0, 0, 0, 0.12),
@@ -234,10 +234,10 @@ body.ready {
 }
 
 /* === Selection Pins (Overlay + Highlight) === */
-.readcast-highlight::before,
-.readcast-highlight::after,
-.readcast-overlay-rect.start::before,
-.readcast-overlay-rect.end::after {
+.readio-highlight::before,
+.readio-highlight::after,
+.readio-overlay-rect.start::before,
+.readio-overlay-rect.end::after {
   content: '';
   position: absolute;
   width: var(--sel-pin-head-d);
@@ -256,15 +256,15 @@ body.ready {
 }
 
 /* LEFT PIN: Head at Top, Stem Down */
-.readcast-highlight::before,
-.readcast-overlay-rect.start::before {
+.readio-highlight::before,
+.readio-overlay-rect.start::before {
   left: var(--sel-pin-offset-x);
   top: var(--sel-pin-offset-y-top);
 }
 
 /* RIGHT PIN: Head at Bottom, Stem Up */
-.readcast-highlight::after,
-.readcast-overlay-rect.end::after {
+.readio-highlight::after,
+.readio-overlay-rect.end::after {
   right: var(--sel-pin-offset-x);
   bottom: var(--sel-pin-offset-y-bottom);
   transform: scaleY(-1);
@@ -2518,7 +2518,7 @@ body.ready {
 }
 
 /* === Selection Highlight (Persistent) === */
-.readcast-highlight {
+.readio-highlight {
   background-color: var(--selection-bg);
   color: var(--selection-color);
   border-radius: 0;

@@ -75,7 +75,7 @@ export function RootErrorBoundary({ children }: { children: React.ReactNode }) {
             fallback={fallback}
             onError={(error, info) => {
                 const text = [
-                    `Readcast crashed at ${new Date().toISOString()}`,
+                    `Readio crashed at ${new Date().toISOString()}`,
                     '',
                     `${error.name}: ${error.message}`,
                     '',

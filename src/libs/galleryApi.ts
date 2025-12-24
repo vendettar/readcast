@@ -11,7 +11,7 @@ const ITUNES_SEARCH_URL = 'https://itunes.apple.com/search';
 const SEARCH_MEMORY_TTL_MS = 30 * 60 * 1000; // 30 minutes
 const SEARCH_STORAGE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
 const SEARCH_NEGATIVE_TTL_MS = 10 * 60 * 1000; // 10 minutes for empty/failed results
-const SEARCH_CACHE_PREFIX = 'readcastSearchV1:';
+const SEARCH_CACHE_PREFIX = 'readioSearchV1:';
 const SEARCH_CACHE_MAX_ENTRIES = 80;
 
 // In-memory cache

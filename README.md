@@ -1,4 +1,4 @@
-# Readcast - React Rewrite
+# Readio - React Rewrite
 
 **Version**: 2.0.0 (React)  
 **Status**: ✅ Complete  
@@ -8,7 +8,7 @@
 
 ## 🎯 This is the React + TypeScript Rewrite
 
-This branch contains a complete rewrite of Readcast using modern React best practices.
+This branch contains a complete rewrite of Readio using modern React best practices.
 
 ### Quick Start
 
@@ -51,7 +51,7 @@ Visit: http://localhost:5173/
 ## 📁 Structure
 
 ```
-readcast/
+Readio/
 ├── src/
 │   ├── components/    # React components
 │   ├── hooks/         # Custom hooks

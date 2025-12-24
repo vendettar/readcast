@@ -15,7 +15,7 @@ export function TranscriptErrorFallback({ error, reset }: TranscriptErrorFallbac
 
     const handleCopyDebug = useCallback(async () => {
         const debugInfo = [
-            `Readcast Transcript Error`,
+            `Readio Transcript Error`,
             `Time: ${new Date().toISOString()}`,
             `Error: ${error.name}: ${error.message}`,
             `Stack: ${error.stack || 'N/A'}`,

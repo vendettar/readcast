@@ -1,6 +1,6 @@
 # CSS Organization
 
-This directory contains the stylesheets for the Readcast React application.
+This directory contains the stylesheets for the Readio React application.
 
 ## File Structure
 

@@ -1,4 +1,4 @@
-# Readcast（React + TypeScript 重写版）开发介绍 / 交接文档
+# Readio（React + TypeScript 重写版）开发介绍 / 交接文档
 
 面向接手开发团队：介绍当前代码的功能边界、关键模块、算法与缓存策略、持久化与测试方式，以及常见排障入口。
 
@@ -23,7 +23,7 @@
 
 ## 1. 项目做什么（产品/功能概述）
 
-Readcast 是一个浏览器内播客播放器，支持：
+Readio 是一个浏览器内播客播放器，支持：
 - **本地文件**：拖放 MP3 + SRT 字幕文件进行播放和阅读
 - **Gallery（发现）**：搜索、订阅播客，收藏节目
 - **字幕跟随**：播放时字幕自动滚动高亮
@@ -105,7 +105,7 @@ return <button>{t('btnPlay')}</button>;
 
 ## 5. 持久化与缓存（Dexie IndexedDB）
 
-使用 Dexie.js 封装 IndexedDB，数据库名：`readcast-v2`。
+使用 Dexie.js 封装 IndexedDB，数据库名：`Readio-v2`。
 
 ### 数据库 Schema
 
@@ -238,7 +238,7 @@ npm run test:e2e
 
 ### 数据库错误
 
-清除浏览器 IndexedDB 数据：DevTools → Application → Storage → 删除 `readcast-v2`。
+清除浏览器 IndexedDB 数据：DevTools → Application → Storage → 删除 `Readio-v2`。
 
 ### Tailwind 样式不生效
 

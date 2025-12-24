@@ -13,14 +13,16 @@ import './styles/localfiles.css'
 
 declare global {
   interface Window {
-    __READCAST_TEST__?: {
+    __READIO_TEST__?: {
+      router: typeof router;
       clearAppData: () => Promise<void>;
-    };
+    }
   }
 }
 
-if (import.meta.env.DEV && import.meta.env.VITE_E2E === '1') {
-  window.__READCAST_TEST__ = {
+if (import.meta.env.DEV) {
+  window.__READIO_TEST__ = {
+    router,
     clearAppData: async () => {
       try {
         localStorage.clear();
@@ -29,7 +31,7 @@ if (import.meta.env.DEV && import.meta.env.VITE_E2E === '1') {
       try {
         await DB.clearAllData();
       } catch {
-        // best-effort (may fail if blocked by other tabs)
+        // best-effort
       }
     },
   };

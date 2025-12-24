@@ -11,8 +11,8 @@ export function ProxyHealthControls() {
     const [checking, setChecking] = useState(false);
 
     const hasCustomProxy = useMemo(() => {
-        const env = (typeof window !== 'undefined' && window.__READCAST_ENV__) || {};
-        return Boolean(String(env.READCAST_CORS_PROXY_URL || '').trim());
+        const env = (typeof window !== 'undefined' && window.__READIO_ENV__) || {};
+        return Boolean(String(env.READIO_CORS_PROXY_URL || '').trim());
     }, []);
 
     const showAdvanced = IS_DEV || hasCustomProxy;

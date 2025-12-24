@@ -2,10 +2,10 @@
 import { type CacheStatus, type CacheResult, type RecommendedPodcast, type RecommendedGroup } from './types';
 import { error as logError } from '../logger';
 
-const RECOMMENDED_CACHE_PREFIX = 'readcastGalleryRecommendedV2:';
-const CHART_CACHE_PREFIX = 'readcastAppleTopPodcastsV1:';
-const LOOKUP_CACHE_PREFIX = 'readcastAppleTopLookupV1:';
-const FEED_FETCHABILITY_PREFIX = 'readcastGalleryFeedFetchabilityV1:';
+const RECOMMENDED_CACHE_PREFIX = 'readioGalleryRecommendedV2:';
+const CHART_CACHE_PREFIX = 'readioAppleTopPodcastsV1:';
+const LOOKUP_CACHE_PREFIX = 'readioAppleTopLookupV1:';
+const FEED_FETCHABILITY_PREFIX = 'readioGalleryFeedFetchabilityV1:';
 
 export const RECOMMENDED_TTL_MS = 24 * 60 * 60 * 1000;
 export const RECOMMENDED_PURGE_MS = 72 * 60 * 60 * 1000;

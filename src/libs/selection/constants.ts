@@ -2,7 +2,7 @@
 
 export const FREE_DICT_API = 'https://api.dictionaryapi.dev/api/v2/entries/en/';
 export const WORD_PATTERN = /^[A-Za-z][A-Za-z0-9]*(?:[''-][A-Za-z0-9]+)*$/;
-export const DICT_CACHE_KEY = 'readcast_dict_cache_v2';
+export const DICT_CACHE_KEY = 'readio_dict_cache_v2';
 export const DICT_CACHE_MAX_ENTRIES = 500;
 export const CLICK_DELAY_MS = 240;
 

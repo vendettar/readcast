@@ -18,7 +18,7 @@ test.describe('Local File Playback Flow', () => {
         // Clear app state before each test (must close app's IDB connection first)
         await page.goto('/');
         await page.evaluate(async () => {
-            await window.__READCAST_TEST__?.clearAppData();
+            await window.__READIO_TEST__?.clearAppData();
         });
         // Reload to ensure fresh state
         await page.reload();
@@ -87,7 +87,7 @@ test.describe('Local File Playback Flow', () => {
         // 4. Verify session and audio are stored in IndexedDB
         const idbData = await page.evaluate(async () => {
             return new Promise<{ sessions: number; audios: number }>((resolve) => {
-                const request = indexedDB.open('readcast');
+                const request = indexedDB.open('readio-v2');
                 request.onsuccess = () => {
                     const db = request.result;
                     let sessions = 0;
@@ -117,7 +117,7 @@ test.describe('Local File Playback Flow', () => {
         // 6. Verify data persisted after refresh
         const idbDataAfterRefresh = await page.evaluate(async () => {
             return new Promise<{ sessions: number; audios: number }>((resolve) => {
-                const request = indexedDB.open('readcast');
+                const request = indexedDB.open('readio-v2');
                 request.onsuccess = () => {
                     const db = request.result;
                     let sessions = 0;
