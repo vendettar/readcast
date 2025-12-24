@@ -2364,6 +2364,11 @@ body.ready {
   -webkit-mask-image: url('../assets/error.svg');
 }
 
+.icon-book {
+  mask-image: url('../assets/book.svg');
+  -webkit-mask-image: url('../assets/book.svg');
+}
+
 .circle-btn:hover {
   transform: translateY(-3px);
 }

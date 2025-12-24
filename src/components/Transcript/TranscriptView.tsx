@@ -23,7 +23,7 @@ export function TranscriptView({ subtitles, currentIndex, onJumpToSubtitle, isFo
     const highlightRefreshHandleRef = useRef<number | null>(null);
     const isProgrammaticScrollRef = useRef(false);
     const lastCurrentIndexRef = useRef(currentIndex);
-    const rangeChangedRef = useRef(false);
+
 
     const scheduleHighlightsRefresh = useCallback(() => {
         if (highlightRefreshHandleRef.current !== null) return;
@@ -36,7 +36,6 @@ export function TranscriptView({ subtitles, currentIndex, onJumpToSubtitle, isFo
 
     // Handle range changes - refresh highlights when rendered items change
     const handleRangeChanged = useCallback(() => {
-        rangeChangedRef.current = true;
         scheduleHighlightsRefresh();
     }, [scheduleHighlightsRefresh]);
 
@@ -127,6 +126,7 @@ export function TranscriptView({ subtitles, currentIndex, onJumpToSubtitle, isFo
                 style={{ height: '100%', overflow: 'auto' }}
             >
                 <Virtuoso
+                    key={`virtuoso-${zoomScale}`}
                     ref={virtuosoRef}
                     data={subtitles}
                     totalCount={subtitles.length}
