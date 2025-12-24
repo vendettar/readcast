@@ -2408,10 +2408,8 @@ body.ready {
   color: var(--color-text);
   transition: var(--transition-bg);
   background-color: transparent;
-  /* Fixed height for virtualization: itemHeight = (height + margin-bottom) * max(1, zoomScale) */
-  height: clamp(48px, calc(48px * var(--zoom-scale)), 144px);
+  /* Dynamic height for react-virtuoso: height determined by content */
   box-sizing: border-box;
-  overflow: hidden;
 }
 
 .subtitle-line:hover {
@@ -2499,10 +2497,10 @@ body.ready {
   caret-color: var(--caret-color);
   position: relative;
   z-index: var(--z-text);
-  /* Truncate long text to maintain fixed height for virtualization */
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  /* Multi-line wrapping enabled (product requirement: every word must be visible) */
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.5;
 }
 
 ::highlight(lookup-highlight) {
